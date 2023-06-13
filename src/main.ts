@@ -7,6 +7,7 @@ async function bootstrap() {
   app.enableCors({
     origin: '*',
     credentials: true,
+    methods: ['GET', 'OPTIONS', 'PATCH', 'DELETE', 'POST', 'PUT'],
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   await app.listen(process.env.PORT);
