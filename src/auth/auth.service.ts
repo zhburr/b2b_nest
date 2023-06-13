@@ -29,7 +29,7 @@ export class AuthService {
     if (!pwMatch) return new ForbiddenException('Credentials incorrect');
     if (!user.emailVerified) {
       const otp = this.sharedService.generateRandomOtp();
-      const updateOtp = await this.prisma.user.update({
+      await this.prisma.user.update({
         where: {
           email: user.email,
         },
@@ -108,7 +108,7 @@ export class AuthService {
 
     if (dto.otp !== user.otp) return new ForbiddenException('OTP is incorrect');
 
-    const updateOtp = await this.prisma.user.update({
+    await this.prisma.user.update({
       where: {
         email: user.email,
       },
@@ -146,7 +146,7 @@ export class AuthService {
     <a style="color:blue;cursor:pointer;text-decoration:underline" href="${frontendURL}/reset-password/${otp}/${user.email}" target="_blank">Reset Password</a>
     <h4>Best Regards</h4><h4>B2B Direct</h4>`;
 
-    const updateOtp = await this.prisma.user.update({
+    await this.prisma.user.update({
       where: {
         email: user.email,
       },
@@ -176,7 +176,7 @@ export class AuthService {
       return new ForbiddenException('Generate a new link to continue');
 
     const hash = await argon.hash(dto.password);
-    const updateOtp = await this.prisma.user.update({
+    await this.prisma.user.update({
       where: {
         email: user.email,
       },

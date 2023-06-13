@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { SharedService } from './shared.service';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { Mailer } from './constant';
 
 @Global()
 @Module({
@@ -9,10 +10,10 @@ import { MailerModule } from '@nestjs-modules/mailer';
   imports: [
     MailerModule.forRoot({
       transport: {
-        service: 'gmail',
+        service: Mailer.mailerService,
         auth: {
-          user: 'zohaib.ur.rehman97@gmail.com',
-          pass: 'piygwpnqberxzray',
+          user: Mailer.mailerUser,
+          pass: Mailer.mailerUserPass,
         },
       },
     }),
