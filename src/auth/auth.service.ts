@@ -7,6 +7,7 @@ import { SharedService } from 'src/shared/shared.service';
 import { Roles } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { Mailer } from 'src/shared/constant';
 @Injectable()
 export class AuthService {
   constructor(
@@ -17,6 +18,7 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
+    console.log(Mailer);
     const user = await this.prisma.user.findFirst({
       where: {
         email: dto.email,
@@ -40,7 +42,11 @@ export class AuthService {
 
       const emailHtml: any = `<h3>Dear ${user.firstName}</h3><p>Thank you for joining B2BDirect team! We are thrilled to have you as a new member of our platform.This eamil serves as confirmation email of your account creation. To access your account and start exploring the exciting features of B2B Direct, please enter the OTP : ${otp} to verify your eamil</p><h4>Best Regards</h4><h4>B2B Direct</h4>`;
 
-      this.sharedService.sendEmail(user.email, 'Email Verification', emailHtml);
+      await this.sharedService.sendEmail(
+        user.email,
+        'Email Verification',
+        emailHtml,
+      );
 
       delete user.password;
       delete user.otp;
@@ -78,7 +84,11 @@ export class AuthService {
 
       const emailHtml: any = `<h3>Dear ${user.firstName}</h3><p>Thank you for joining B2BDirect team! We are thrilled to have you as a new member of our platform.This eamil serves as confirmation email of your account creation. To access your account and start exploring the exciting features of B2B Direct, please enter the OTP : ${user.otp} to verify your eamil</p><h4>Best Regards</h4><h4>B2B Direct</h4>`;
 
-      this.sharedService.sendEmail(dto.email, 'Email Verification', emailHtml);
+      await this.sharedService.sendEmail(
+        dto.email,
+        'Email Verification',
+        emailHtml,
+      );
 
       delete user.password;
       delete user.otp;
@@ -155,7 +165,7 @@ export class AuthService {
       },
     });
 
-    this.sharedService.sendEmail(user.email, 'Reset password', emailHtml);
+    await this.sharedService.sendEmail(user.email, 'Reset password', emailHtml);
 
     return this.sharedService.sendResponse(
       {},
