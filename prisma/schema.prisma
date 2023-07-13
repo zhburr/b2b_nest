@@ -12,24 +12,63 @@ datasource db {
 }
 
 model User {
-  id            Int      @id @default(autoincrement())
-  firstName     String
-  lastName      String
-  email         String   @unique
-  password      String
-  isVat         Boolean  @default(false)
-  emailVerified Boolean  @default(false)
-  otp           Int?
-  role          Roles
-  balance       Decimal?
-  createdAt     DateTime @default(now())
-  updateAt      DateTime @updatedAt
+  id              Int               @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  email           String            @unique
+  password        String
+  isVat           Boolean           @default(false)
+  emailVerified   Boolean           @default(false)
+  otp             Int?
+  role            Roles
+  balance         Decimal?
+  createdAt       DateTime          @default(now())
+  updateAt        DateTime          @updatedAt
+  ProductApproval ProductApproval[]
+  Product         Product[]
 
   @@map("users")
+}
+
+model ProductApproval {
+  id        Int      @id @default(autoincrement())
+  csv       String
+  status    Status   @default(Pending)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  remarks   String?  @db.LongText
+  createdAt DateTime @default(now())
+  updateAt  DateTime @updatedAt
+
+  @@map("products_approval")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  title       String
+  sku         String   @unique
+  description String?
+  quantity    Int
+  price       Decimal?
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  image       String?
+  weight      Decimal
+  location    String?
+  createdAt   DateTime @default(now())
+  updateAt    DateTime @updatedAt
+
+  @@map("products")
 }
 
 enum Roles {
   Customer
   Client
   Admin
+}
+
+enum Status {
+  Pending
+  Approved
+  Rejected
 }

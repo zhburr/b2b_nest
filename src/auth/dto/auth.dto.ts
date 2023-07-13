@@ -8,6 +8,7 @@ import {
   Matches,
   MaxLength,
   MinLength,
+  IsNumberString,
 } from 'class-validator';
 const roles: string[] = ['Admin', 'Client', 'Customer'];
 
@@ -85,4 +86,35 @@ export class resetPasswordDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+}
+
+export class CsvDto {
+  @IsNotEmpty()
+  Index: number;
+
+  @IsNotEmpty()
+  Organization_Id: string;
+
+  @IsNotEmpty()
+  Name: string;
+
+  @IsNotEmpty()
+  Website: string;
+
+  @IsNotEmpty()
+  Country: string;
+
+  @IsNotEmpty()
+  Description: string;
+
+  @IsNotEmpty()
+  Founded: number;
+
+  @IsNotEmpty()
+  Industry: string;
+
+  @IsNotEmpty()
+  Number_of_employees: number;
+
+  // Add more properties as needed
 }

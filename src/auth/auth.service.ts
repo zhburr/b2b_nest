@@ -2,12 +2,12 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { LoginDto, RegisterDto, resetPasswordDto, verifyEmailDto } from './dto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import * as argon from 'argon2';
 import { SharedService } from 'src/shared/shared.service';
 import { Roles } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { Mailer } from 'src/shared/constant';
+import * as bcrypt from 'bcrypt';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -18,7 +18,6 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
-    console.log(Mailer);
     const user = await this.prisma.user.findFirst({
       where: {
         email: dto.email,
@@ -27,7 +26,7 @@ export class AuthService {
 
     if (!user) return new ForbiddenException('Credentials incorrect');
 
-    const pwMatch = await argon.verify(user.password, dto.password);
+    const pwMatch = await bcrypt.compare(dto.password, user.password);
     if (!pwMatch) return new ForbiddenException('Credentials incorrect');
     if (!user.emailVerified) {
       const otp = this.sharedService.generateRandomOtp();
@@ -67,7 +66,9 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     try {
-      const hash = await argon.hash(dto.password);
+      console.log({ dto });
+
+      const hash = await bcrypt.hash(dto.password, 10);
       const otp = this.sharedService.generateRandomOtp();
 
       const user = await this.prisma.user.create({
@@ -99,6 +100,8 @@ export class AuthService {
         'Your account has been created please verify your account now',
       );
     } catch (error) {
+      console.log(error);
+
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ForbiddenException('Credentials taken');
@@ -185,7 +188,7 @@ export class AuthService {
     if (dto.otp !== user.otp)
       return new ForbiddenException('Generate a new link to continue');
 
-    const hash = await argon.hash(dto.password);
+    const hash = await bcrypt.hash(dto.password, 10);
     await this.prisma.user.update({
       where: {
         email: user.email,
@@ -201,5 +204,15 @@ export class AuthService {
       true,
       'Your password has been reset',
     );
+  }
+
+  async test(file: Express.Multer.File) {
+    // const csvjson = await csv().fromFile(file.path);
+    // console.log(csvjson);
+    // fs.unlink(file.path, (err) => {
+    //   if (err) {
+    //     console.error(err);
+    //   }
+    // });
   }
 }
