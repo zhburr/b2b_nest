@@ -1,7 +1,8 @@
-import { Status } from '@prisma/client';
+import { Packaging, Status } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 import {
   IsEmail,
+  IsIn,
   IsNotEmpty,
   IsNumber,
   IsString,
@@ -69,4 +70,27 @@ export class GetProductByUserIdDTO {
   @IsNotEmpty()
   @IsNumber()
   selectedUserId: number;
+}
+
+export class UpdateUserProductAdminDTO {
+  @IsNotEmpty()
+  productPackaging: Packaging;
+
+  @IsString()
+  productLocation: string;
+
+  @IsNotEmpty()
+  @Transform(({ value }) => {
+    return Number(value);
+  })
+  productWeight: number;
+
+  @IsNotEmpty()
+  @Transform(({ value }) => {
+    return Number(value);
+  })
+  productQuantity: number;
+
+  @IsNotEmpty()
+  productId: number;
 }

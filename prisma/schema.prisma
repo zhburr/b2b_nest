@@ -44,19 +44,20 @@ model ProductApproval {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   title       String
-  sku         String   @unique
+  sku         String     @unique
   description String?
   quantity    Int
   price       Decimal?
   userId      Int
-  user        User     @relation(fields: [userId], references: [id])
+  user        User       @relation(fields: [userId], references: [id])
   image       String?
   weight      Decimal
   location    String?
-  createdAt   DateTime @default(now())
-  updateAt    DateTime @updatedAt
+  packaging   Packaging?
+  createdAt   DateTime   @default(now())
+  updateAt    DateTime   @updatedAt
 
   @@map("products")
 }
@@ -71,4 +72,9 @@ enum Status {
   Pending
   Approved
   Rejected
+}
+
+enum Packaging {
+  Parcel
+  Large
 }

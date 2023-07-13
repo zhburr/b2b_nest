@@ -8,6 +8,7 @@ import {
   GetProductsDTO,
   ProductCSVDto,
   UpdateProductApprovalStatus,
+  UpdateUserProductAdminDTO,
 } from './dto';
 import { getFile } from 'src/common/helper';
 
@@ -163,5 +164,25 @@ export class ProductService {
     });
 
     return this.sharedService.sendResponse({ products, totalProduct }, true);
+  }
+
+  async updateUserProductByAdmin(dto: UpdateUserProductAdminDTO) {
+    const updateProduct = await this.prisma.product.update({
+      where: {
+        id: dto.productId,
+      },
+      data: {
+        location: dto.productLocation,
+        packaging: dto.productPackaging,
+        weight: dto.productWeight,
+        quantity: dto.productQuantity,
+      },
+    });
+
+    return this.sharedService.sendResponse(
+      {},
+      true,
+      'Product has been updated',
+    );
   }
 }

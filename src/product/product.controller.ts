@@ -18,6 +18,7 @@ import {
   GetProductsDTO,
   ProductCSVDto,
   UpdateProductApprovalStatus,
+  UpdateUserProductAdminDTO,
 } from './dto';
 import { Request } from 'express';
 import { Roles as Role } from 'src/roles.decorator';
@@ -79,5 +80,11 @@ export class ProductController {
   @Role(Roles.Admin)
   getSelectedUserProduct(@Body() dto: GetProductByUserIdDTO) {
     return this.productService.getSelectedUserProduct(dto);
+  }
+
+  @Post('updateUserProductByAdmin')
+  @Role(Roles.Admin)
+  updateUserProductByAdmin(@Body() dto: UpdateUserProductAdminDTO) {
+    return this.productService.updateUserProductByAdmin(dto);
   }
 }
