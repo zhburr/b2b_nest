@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { ProductApproval, Status, User } from '@prisma/client';
+import { Packaging, ProductApproval, Status, User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SharedService } from 'src/shared/shared.service';
 import * as fs from 'fs';
@@ -105,9 +105,9 @@ export class ProductService {
     );
 
     try {
-      await this.prisma.$transaction(async () => {
+      await this.prisma.$transaction(async (tx) => {
         for (let product of jsonData) {
-          await this.prisma.$queryRaw`
+          await tx.$queryRaw`
   INSERT INTO \`products\` (\`sku\`, \`title\`, \`quantity\`, \`userId\`, \`price\`, \`weight\`, \`updateAt\`)
   VALUES (${product.SKU}, ${product.Name}, ${Number(product.Quantity)}, ${
             dto.userId
@@ -152,8 +152,18 @@ export class ProductService {
       where: {
         userId: dto.selectedUserId,
       },
-      orderBy: {
-        updateAt: 'desc',
+      select: {
+        id: true,
+        title: true,
+        sku: true,
+        description: true,
+        quantity: true,
+        price: true,
+        userId: true,
+        image: true,
+        weight: true,
+        location: true,
+        packaging: true,
       },
       skip: dto.pageIndex * dto.pageSize,
       take: dto.pageSize,
@@ -173,14 +183,27 @@ export class ProductService {
       },
       data: {
         location: dto.productLocation,
-        packaging: dto.productPackaging,
+        packaging: Packaging[dto.productPackaging] ?? null,
         weight: dto.productWeight,
         quantity: dto.productQuantity,
+      },
+      select: {
+        id: true,
+        title: true,
+        sku: true,
+        description: true,
+        quantity: true,
+        price: true,
+        userId: true,
+        image: true,
+        weight: true,
+        location: true,
+        packaging: true,
       },
     });
 
     return this.sharedService.sendResponse(
-      {},
+      updateProduct,
       true,
       'Product has been updated',
     );

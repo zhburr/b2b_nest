@@ -21,11 +21,12 @@ model User {
   emailVerified   Boolean           @default(false)
   otp             Int?
   role            Roles
-  balance         Decimal?
+  balance         Decimal?          @db.Decimal(5, 2)
   createdAt       DateTime          @default(now())
   updateAt        DateTime          @updatedAt
   ProductApproval ProductApproval[]
   Product         Product[]
+  OrderUpload     OrderUpload[]
 
   @@map("users")
 }
@@ -44,22 +45,62 @@ model ProductApproval {
 }
 
 model Product {
-  id          Int        @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   title       String
-  sku         String     @unique
+  sku         String      @unique
   description String?
   quantity    Int
-  price       Decimal?
+  price       Decimal?    @db.Decimal(5, 2)
   userId      Int
-  user        User       @relation(fields: [userId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
   image       String?
-  weight      Decimal
+  weight      Decimal     @db.Decimal(5, 2)
   location    String?
   packaging   Packaging?
-  createdAt   DateTime   @default(now())
-  updateAt    DateTime   @updatedAt
+  createdAt   DateTime    @default(now())
+  updateAt    DateTime    @updatedAt
+  OrderLine   OrderLine[]
 
   @@map("products")
+}
+
+model OrderUpload {
+  id          Int         @id @default(autoincrement())
+  csv         String
+  invoice     String?
+  userId      Int
+  user        User        @relation(fields: [userId], references: [id])
+  totalAmount Decimal?    @db.Decimal(5, 2)
+  paid        Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updateAt    DateTime    @updatedAt
+  OrderLine   OrderLine[]
+}
+
+model OrderLine {
+  id              Int         @id @default(autoincrement())
+  orderId         Int
+  order           OrderUpload @relation(fields: [orderId], references: [id])
+  productSku      String
+  product         Product     @relation(fields: [productSku], references: [sku])
+  productQuantity Int
+  buyerName       String
+  buyerAddress1   String
+  buyerAddress2   String?
+  buyerCity       String
+  buyerCountry    String
+  buyerPostCode   String
+  createdAt       DateTime    @default(now())
+  updateAt        DateTime    @updatedAt
+}
+
+model Postage {
+  id          Int      @id @default(autoincrement())
+  weight_from Int
+  weight_to   Int
+  price       Decimal  @db.Decimal(5, 2)
+  createdAt   DateTime @default(now())
+  updateAt    DateTime @updatedAt
 }
 
 enum Roles {

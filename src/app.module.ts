@@ -11,6 +11,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './role.guard';
 import { AuthGuard } from './auth/auth.guard';
 import { UserModule } from './user/user.module';
+import { OrderModule } from './order/order.module';
 @Module({
   imports: [
     PrismaModule,
@@ -30,6 +31,7 @@ import { UserModule } from './user/user.module';
       serveRoot: '/uploads', // Define the base URL path for serving the files
     }),
     UserModule,
+    OrderModule,
   ],
   controllers: [],
   providers: [

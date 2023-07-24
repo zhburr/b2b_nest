@@ -73,22 +73,22 @@ export class GetProductByUserIdDTO {
 }
 
 export class UpdateUserProductAdminDTO {
-  @IsNotEmpty()
-  productPackaging: Packaging;
+  @IsString()
+  productPackaging: string;
 
   @IsString()
   productLocation: string;
 
-  @IsNotEmpty()
   @Transform(({ value }) => {
     return Number(value);
   })
+  @IsNumber()
   productWeight: number;
 
-  @IsNotEmpty()
   @Transform(({ value }) => {
     return Number(value);
   })
+  @IsNumber()
   productQuantity: number;
 
   @IsNotEmpty()
