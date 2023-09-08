@@ -1,8 +1,7 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Packaging, ProductApproval, Status, User } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SharedService } from 'src/shared/shared.service';
-import * as fs from 'fs';
 import {
   GetProductByUserIdDTO,
   GetProductsDTO,
@@ -10,7 +9,7 @@ import {
   UpdateProductApprovalStatus,
   UpdateUserProductAdminDTO,
 } from './dto';
-import { getFile } from 'src/common/helper';
+import { deleteFile, getFile } from 'src/common/helper';
 
 @Injectable()
 export class ProductService {
@@ -19,29 +18,25 @@ export class ProductService {
     private prisma: PrismaService,
   ) {}
 
-  async uploadProductListing(user: User, file) {
-    try {
-      const createProductListing = await this.prisma.productApproval.create({
-        data: {
-          csv: file.filename,
-          userId: user.id,
-        },
-      });
+  async uploadProductListing(userId: number, fileName: string) {
+    // try {
+    const createProductListing = await this.prisma.productApproval.create({
+      data: {
+        csv: fileName,
+        userId: userId,
+      },
+    });
 
-      return this.sharedService.sendResponse(
-        createProductListing,
-        true,
-        'Products has been uploaded sucessfully',
-      );
-    } catch (error) {
-      console.log(error, file.path);
+    return createProductListing;
 
-      fs.unlink(file.path, (err) => {
-        if (err) {
-          console.error(err);
-        }
-      });
-    }
+    //   return this.sharedService.sendResponse(
+    //     createProductListing,
+    //     true,
+    //     'Products has been uploaded sucessfully',
+    //   );
+    // } catch (error) {
+    //   await deleteFile(file.path);
+    // }
   }
 
   async allProductApprovalOfUser(user: User) {
@@ -106,7 +101,7 @@ export class ProductService {
 
     try {
       await this.prisma.$transaction(async (tx) => {
-        for (let product of jsonData) {
+        for (const product of jsonData) {
           await tx.$queryRaw`
   INSERT INTO \`products\` (\`sku\`, \`title\`, \`quantity\`, \`userId\`, \`price\`, \`weight\`, \`updateAt\`)
   VALUES (${product.SKU}, ${product.Name}, ${Number(product.Quantity)}, ${
@@ -207,5 +202,14 @@ export class ProductService {
       true,
       'Product has been updated',
     );
+  }
+
+  async getProductBySKU(sku: string) {
+    const product = await this.prisma.product.findUnique({
+      where: {
+        sku: sku,
+      },
+    });
+    return product;
   }
 }

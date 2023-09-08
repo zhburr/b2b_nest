@@ -21,7 +21,9 @@ model User {
   emailVerified   Boolean           @default(false)
   otp             Int?
   role            Roles
-  balance         Decimal?          @db.Decimal(5, 2)
+  balance         Decimal           @default(0) @db.Decimal(5, 2)
+  credit          Decimal           @default(0) @db.Decimal(5, 2)
+  canUploadOrder  Boolean           @default(true)
   createdAt       DateTime          @default(now())
   updateAt        DateTime          @updatedAt
   ProductApproval ProductApproval[]
@@ -74,6 +76,7 @@ model OrderUpload {
   paid        Boolean     @default(false)
   createdAt   DateTime    @default(now())
   updateAt    DateTime    @updatedAt
+  delivered   Boolean     @default(false)
   OrderLine   OrderLine[]
 }
 
@@ -90,6 +93,8 @@ model OrderLine {
   buyerCity       String
   buyerCountry    String
   buyerPostCode   String
+  trackingNo      String?
+  trackingCompany String?
   createdAt       DateTime    @default(now())
   updateAt        DateTime    @updatedAt
 }

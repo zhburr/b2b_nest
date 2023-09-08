@@ -4,6 +4,7 @@ import {
   Get,
   Post,
   Req,
+  Res,
   UploadedFile,
   UseInterceptors,
   UsePipes,
@@ -19,14 +20,19 @@ import {
   ProductCSVDto,
   UpdateProductApprovalStatus,
   UpdateUserProductAdminDTO,
+  updateProductQuantityDTO,
 } from './dto';
-import { Request } from 'express';
+import { Response, Request } from 'express';
 import { Roles as Role } from 'src/roles.decorator';
 import { Roles } from '@prisma/client';
+import { SharedService } from 'src/shared/shared.service';
 
 @Controller('product')
 export class ProductController {
-  constructor(private productService: ProductService) {}
+  constructor(
+    private productService: ProductService,
+    private sharedService: SharedService,
+  ) {}
 
   @Post('uploadListing')
   @Role(Roles.Client)
@@ -48,8 +54,28 @@ export class ProductController {
     @UploadedFile()
     file: Express.Multer.File,
     @Req() req: Request,
+    @Res() res: Response,
   ) {
-    return this.productService.uploadProductListing(req['user'], file);
+    try {
+      const newProductUpload = this.productService.uploadProductListing(
+        req['user'].id,
+        file.filename,
+      );
+
+      return res
+        .status(200)
+        .send(
+          this.sharedService.sendResponse(
+            newProductUpload,
+            true,
+            'Products has been uploaded sucessfully',
+          ),
+        );
+    } catch (error) {
+      return res
+        .status(500)
+        .send(this.sharedService.sendResponse('', false, error.message));
+    }
   }
 
   @Get('allProductApprovalOfUser')
@@ -86,5 +112,54 @@ export class ProductController {
   @Role(Roles.Admin)
   updateUserProductByAdmin(@Body() dto: UpdateUserProductAdminDTO) {
     return this.productService.updateUserProductByAdmin(dto);
+  }
+
+  @Post('updateProduct')
+  @Role(Roles.Client)
+  updateProduct() {
+    try {
+    } catch (error) {}
+  }
+
+  @Post('updateProductQuantity')
+  @Role(Roles.Client)
+  async updateProductQuantity(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Body() dto: updateProductQuantityDTO,
+  ) {
+    try {
+      const product = await this.productService.getProductBySKU(dto.sku);
+      const data = {
+        Name: product.title,
+        SKU: dto.sku,
+        Quantity: dto.newQuantity,
+        Price: product.price,
+        Weight: product.weight,
+      };
+      const csv = await this.sharedService.createCsv(
+        [data],
+        'uploads/products',
+      );
+
+      const newProductUpload = await this.productService.uploadProductListing(
+        req['user'].id,
+        csv,
+      );
+
+      return res
+        .status(200)
+        .send(
+          this.sharedService.sendResponse(
+            '',
+            true,
+            'Products has been uploaded for quantity update',
+          ),
+        );
+    } catch (error) {
+      return res
+        .status(500)
+        .send(this.sharedService.sendResponse('', false, error.message));
+    }
   }
 }

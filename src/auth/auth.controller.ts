@@ -55,31 +55,4 @@ export class AuthController {
   resetPassword(@Body() dto: resetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
-
-  @Post('uploadProduct')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-        destination: './uploads/products',
-        filename: (req, file, callback) => {
-          const unique = Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          const fileName = `${unique}${ext}`;
-          callback(null, fileName);
-        },
-      }),
-    }),
-  )
-  @UsePipes(new CsvValidationPipe(CsvDto))
-  uploadProductCSV(@UploadedFile() file: Express.Multer.File) {
-    const json = file['transformedValue'];
-    const fileData = file['file'];
-    // console.log(file, 'file');
-    // console.log(file, 'file');
-    // console.log(csvData, 'csvData');
-    // return this.authService.test(file);
-    // console.log(file);
-
-    return { json, fileData };
-  }
 }

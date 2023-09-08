@@ -14,7 +14,17 @@ export class OrderService {
 
   async uploadOrder(user: User, file) {
     try {
-      console.log(file);
+      const checkUploadStatus = await this.prisma.user.findUnique({
+        where: {
+          email: user.email,
+        },
+      });
+
+      if (!checkUploadStatus.canUploadOrder) {
+        throw new Error(
+          'You can not upload order.Please contact B2B Direct for further details',
+        );
+      }
 
       const getfile: any = await getFile(file.path);
       const jsonData: OrderCSVDTO[] = await this.sharedService.parseCsvFile(
@@ -87,7 +97,6 @@ export class OrderService {
 
   private async insertOrderData(file, user: User, data: OrderCSVDTO[]) {
     const orderLinesToCreate = [];
-    const productSKUsToUpdate = [];
 
     try {
       await this.prisma.$transaction(
@@ -99,9 +108,7 @@ export class OrderService {
             },
           });
 
-          console.log(order);
-
-          for (let orderLine of data) {
+          for (const orderLine of data) {
             orderLinesToCreate.push({
               orderId: order.id,
               productSku: orderLine.ProductSKU,
@@ -113,28 +120,24 @@ export class OrderService {
               buyerCountry: orderLine.BuyerCountry,
               buyerPostCode: orderLine.BuyerPostCode,
             });
-
-            productSKUsToUpdate.push(orderLine.ProductSKU);
           }
 
           await tx.orderLine.createMany({
             data: orderLinesToCreate,
           });
 
-          const productUpdates = productSKUsToUpdate.map((sku) => ({
+          const productUpdates = orderLinesToCreate.map((order) => ({
             where: {
-              sku: sku,
+              sku: order.productSku,
             },
             data: {
               quantity: {
-                decrement: orderLinesToCreate.find(
-                  (ol) => ol.productSku === sku,
-                ).productQuantity,
+                decrement: order.productQuantity,
               },
             },
           }));
 
-          console.log(productUpdates); // Check the generated array
+          // Check the generated array
 
           for (const updateObj of productUpdates) {
             await tx.product.update({
@@ -143,12 +146,51 @@ export class OrderService {
             });
           }
         },
-        { timeout: 2000 },
+        { timeout: 200000 },
       );
     } catch (error) {
-      console.log('Transaction is fialed it should roll back now');
       throw new Error('Something went wrong');
     }
+  }
+
+  async getUserOrderList(user: User) {
+    const orderList = await this.prisma.orderUpload.findMany({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    return this.sharedService.sendResponse(orderList, true);
+  }
+
+  async checkUserOrderId(userId: number, orderId: number) {
+    const check = await this.prisma.orderUpload.findFirst({
+      where: {
+        id: orderId,
+        user: {
+          id: userId,
+        },
+      },
+    });
+
+    return check ? true : false;
+  }
+
+  async getOrderById(orderId: number, includeProduct = false) {
+    const order = await this.prisma.orderUpload.findUnique({
+      where: {
+        id: orderId,
+      },
+      include: {
+        OrderLine: {
+          include: {
+            product: includeProduct,
+          },
+        },
+      },
+    });
+
+    return order;
   }
 
   async upsertPostage(dto: UpsertPostageDTO) {
@@ -221,5 +263,121 @@ export class OrderService {
     const allPostage = await this.prisma.postage.findMany({});
 
     return this.sharedService.sendResponse(allPostage, true);
+  }
+
+  async getAllPendingOrder() {
+    const order = await this.prisma.orderUpload.findMany({
+      where: {
+        OR: [{ delivered: false }, { paid: false }],
+      },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    return order;
+  }
+
+  async getInvoiceData(order) {
+    const invoiceList = [];
+    const orderMap = order.OrderLine.reduce((map, item) => {
+      if (map[item.productSku]) {
+        map[item.productSku] += item.productQuantity;
+      } else {
+        map[item.productSku] = item.productQuantity;
+      }
+      return map;
+    }, {});
+
+    for (const [key, value] of Object.entries(orderMap)) {
+      const product = await this.prisma.product.findUnique({
+        where: {
+          sku: key,
+        },
+      });
+
+      const totalWeight = Number(product.weight) * Number(value);
+      const price = await this.getPostageByWeight(totalWeight);
+      const editedProduct = {
+        ...product,
+        totalWeight,
+        totalPrice: price,
+        totalOrderQuantity: value,
+      };
+
+      invoiceList.push(editedProduct);
+    }
+    return { invoiceList };
+  }
+
+  async getPostageByWeight(weight: number) {
+    const postage = await this.prisma.postage.findFirst({
+      where: {
+        weight_from: { lte: weight },
+        weight_to: { gte: weight },
+      },
+    });
+    return postage ? postage.price : 0;
+  }
+
+  async getUserById(userId: number) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+      },
+    });
+
+    delete user.password;
+
+    return user;
+  }
+
+  async updateOrderField(orderId: number, updateData: any) {
+    const update = await this.prisma.orderUpload.update({
+      where: { id: orderId },
+      data: updateData,
+    });
+
+    return update;
+  }
+
+  async updateOrderLineField(orderLineId: number, updateData: any) {
+    const update = await this.prisma.orderLine.update({
+      where: {
+        id: orderLineId,
+      },
+      data: updateData,
+    });
+
+    return update;
+  }
+
+  async getOrderLine(orderId: number, pageIndex: number, pageSize: number) {
+    const orderLines = await this.prisma.orderLine.findMany({
+      where: {
+        orderId,
+      },
+      take: pageSize,
+      skip: pageIndex * pageSize,
+    });
+
+    return orderLines;
+  }
+
+  async getUserOrderByEmail(email: string) {
+    const orders = await this.prisma.orderUpload.findMany({
+      where: {
+        user: {
+          email: email,
+        },
+      },
+    });
+
+    return orders;
   }
 }

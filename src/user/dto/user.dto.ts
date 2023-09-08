@@ -17,4 +17,8 @@ export class UpdateUserDTO {
     return Number(value);
   })
   selecteUserBalance: number;
+
+  @IsNotEmpty()
+  @IsBoolean()
+  selectedUserCanUploadOrder: boolean;
 }

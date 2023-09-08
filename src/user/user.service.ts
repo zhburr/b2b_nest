@@ -26,6 +26,8 @@ export class UserService {
         balance: true,
         id: true,
         role: true,
+        canUploadOrder: true,
+        credit: true,
       },
     });
 
@@ -40,6 +42,7 @@ export class UserService {
       data: {
         isVat: dto.selectedUserVat,
         balance: dto.selecteUserBalance,
+        canUploadOrder: dto.selectedUserCanUploadOrder,
       },
     });
 
@@ -48,5 +51,16 @@ export class UserService {
       true,
       'User updated sucessfully',
     );
+  }
+
+  async updateUserFields(userId: number, updateData: any) {
+    const update = await this.prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: updateData,
+    });
+
+    return update;
   }
 }

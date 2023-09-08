@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import * as csvParser from 'csv-parser';
+import { createFile } from 'src/common/helper';
 @Injectable()
 export class SharedService {
   constructor(private mailService: MailerService) {}
@@ -10,9 +11,13 @@ export class SharedService {
     return Math.floor(100000 + Math.random() * 900000);
   }
 
+  unique() {
+    return Math.round(Math.random() * 1e9);
+  }
+
   async sendEmail(toEmail: string, subject: string, emailHtml: string) {
     await this.mailService.sendMail({
-      from: '"B2bDirect" <zohaib.ur.rehman97@gmail.com>',
+      from: '"B2B Direct" <zohaib.ur.rehman97@gmail.com>',
       to: toEmail, // list of receivers
       subject: subject, // Subject line
       text: '',
@@ -64,4 +69,30 @@ export class SharedService {
       parser.end();
     });
   };
+
+  async createCsv(data: any[], path: string): Promise<string> {
+    console.log(data);
+
+    const csvRows = [];
+
+    // Create the CSV header row
+    const header = Object.keys(data[0]).join(',');
+    csvRows.push(header);
+
+    // Create CSV data rows
+    data.forEach((item) => {
+      console.log(item);
+
+      const row = Object.values(item).join(',');
+      csvRows.push(row);
+    });
+
+    // Join rows with line breaks to create the CSV content
+    const csvContent = csvRows.join('\n');
+    const fileName = `${this.unique()}.csv`;
+
+    // Write CSV content to the file
+    await createFile(path, fileName, csvContent);
+    return fileName;
+  }
 }

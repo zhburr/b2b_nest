@@ -151,7 +151,7 @@ export class AuthService {
 
     const otp = this.sharedService.generateRandomOtp();
     const frontendURL = this.configService.get<string>('FRONTEND_URL');
-    let emailHtml: string = `<h3>Dear ${user.firstName}</h3>
+    const emailHtml = `<h3>Dear ${user.firstName}</h3>
     <p>
       You can reset your password by clicking on link below.
       if you didn't request changing your password ignore it

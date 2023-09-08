@@ -1,5 +1,6 @@
+import { OrderUpload } from '@prisma/client';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class OrderCSVDTO {
   @IsNotEmpty()
@@ -57,4 +58,44 @@ export class UpsertPostageDTO {
   })
   @IsNumber()
   id: number;
+}
+
+export class UpdateOrderDTO {
+  @IsBoolean()
+  @IsNotEmpty()
+  paid: boolean;
+
+  @IsBoolean()
+  @IsNotEmpty()
+  delivered: boolean;
+
+  @IsNotEmpty()
+  @IsNumber()
+  orderId: number;
+}
+
+export class OrderLinePaginationDTO {
+  @IsNotEmpty()
+  @IsNumber()
+  pageIndex: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  pageSize: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  orderId: number;
+}
+
+export class UpdateOrderLineDTO {
+  @IsNotEmpty()
+  @IsNumber()
+  orderLineId: number;
+
+  @IsString()
+  trackingNo: string;
+
+  @IsString()
+  trackingCompany: string;
 }

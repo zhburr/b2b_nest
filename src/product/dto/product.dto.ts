@@ -1,14 +1,6 @@
-import { Packaging, Status } from '@prisma/client';
-import { Transform, Type } from 'class-transformer';
-import {
-  IsEmail,
-  IsIn,
-  IsNotEmpty,
-  IsNumber,
-  IsString,
-  ValidateNested,
-  isNumber,
-} from 'class-validator';
+import { Status } from '@prisma/client';
+import { Transform } from 'class-transformer';
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class ProductCSVDto {
   @IsNotEmpty()
@@ -93,4 +85,14 @@ export class UpdateUserProductAdminDTO {
 
   @IsNotEmpty()
   productId: number;
+}
+
+export class updateProductQuantityDTO {
+  @IsString()
+  @IsNotEmpty()
+  sku: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  newQuantity: number;
 }
