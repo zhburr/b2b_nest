@@ -98,8 +98,6 @@ export class AuthService {
         'Your account has been created please verify your account now',
       );
     } catch (error) {
-      console.log(error);
-
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           throw new ForbiddenException('Credentials taken');

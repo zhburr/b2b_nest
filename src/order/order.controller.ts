@@ -255,8 +255,6 @@ export class OrderController {
           ),
         );
     } catch (error) {
-      console.log(error);
-
       await deleteFile(file.path);
       return res
         .status(500)
@@ -337,7 +335,6 @@ export class OrderController {
           ),
         );
     } catch (error) {
-      console.log(dto);
       return res
         .status(500)
         .send(this.sharedService.sendResponse('', false, error.message));
@@ -376,8 +373,6 @@ export class OrderController {
       await this.prisma.$transaction(
         async (tx) => {
           for (let orderLine of json) {
-            console.log(orderLine, 'input');
-
             const data = await tx.orderLine.update({
               where: {
                 id: orderLine.Orderline,
@@ -387,7 +382,6 @@ export class OrderController {
                 trackingNo: orderLine.Tracking_number ?? undefined,
               },
             });
-            console.log(data, 'data');
           }
         },
         { timeout: 200000 },
@@ -404,8 +398,6 @@ export class OrderController {
           ),
         );
     } catch (error) {
-      console.log(error);
-
       await deleteFile(file.path);
       return res
         .status(500)

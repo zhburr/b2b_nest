@@ -62,8 +62,6 @@ export class SharedService {
       });
 
       parser.on('error', (error) => {
-        console.log(error, 'error');
-
         reject(error);
       });
 
@@ -73,8 +71,6 @@ export class SharedService {
   };
 
   async createCsv(data: any[], path: string): Promise<string> {
-    console.log(data);
-
     const csvRows = [];
 
     // Create the CSV header row
@@ -83,8 +79,6 @@ export class SharedService {
 
     // Create CSV data rows
     data.forEach((item) => {
-      console.log(item);
-
       const row = Object.values(item).join(',');
       csvRows.push(row);
     });
