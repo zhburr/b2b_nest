@@ -18,7 +18,7 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findFirst({
+    const user = await this.prisma.user.findUnique({
       where: {
         email: dto.email,
       },
@@ -66,8 +66,6 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     try {
-      console.log({ dto });
-
       const hash = await bcrypt.hash(dto.password, 10);
       const otp = this.sharedService.generateRandomOtp();
 
@@ -111,7 +109,7 @@ export class AuthService {
   }
 
   async verifyEmail(dto: verifyEmailDto) {
-    const user = await this.prisma.user.findFirst({
+    const user = await this.prisma.user.findUnique({
       where: {
         email: dto.email,
       },
@@ -142,7 +140,7 @@ export class AuthService {
   }
 
   async emailForgetPassword(email: string) {
-    const user = await this.prisma.user.findFirst({
+    const user = await this.prisma.user.findUnique({
       where: {
         email,
       },
@@ -204,15 +202,5 @@ export class AuthService {
       true,
       'Your password has been reset',
     );
-  }
-
-  async test(file: Express.Multer.File) {
-    // const csvjson = await csv().fromFile(file.path);
-    // console.log(csvjson);
-    // fs.unlink(file.path, (err) => {
-    //   if (err) {
-    //     console.error(err);
-    //   }
-    // });
   }
 }

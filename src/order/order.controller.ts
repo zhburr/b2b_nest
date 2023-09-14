@@ -17,6 +17,7 @@ import { extname } from 'path';
 import { CsvValidationPipe } from 'src/auth/csv-validation.pipe';
 import {
   OrderCSVDTO,
+  OrderLineCSVDTO,
   OrderLinePaginationDTO,
   UpdateOrderDTO,
   UpdateOrderLineDTO,
@@ -26,9 +27,10 @@ import { Roles as Role } from 'src/roles.decorator';
 import { Roles } from '@prisma/client';
 import { Response, Request } from 'express';
 import { SharedService } from 'src/shared/shared.service';
-import { deleteFile } from 'src/common/helper';
+import { deleteFile, getFile } from 'src/common/helper';
 import { UserService } from 'src/user/user.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Public } from 'src/public.decorator';
 
 @Controller('order')
 export class OrderController {
@@ -77,8 +79,15 @@ export class OrderController {
 
   @Get('getUserOrderList')
   @Role(Roles.Client)
-  getUserOrderList(@Req() req: Request) {
-    return this.orderService.getUserOrderList(req['user']);
+  getUserOrderList(@Req() req: Request, @Res() res: Response) {
+    try {
+      const data = this.orderService.getUserOrderList(req['user']);
+      return res.status(200).send(this.sharedService.sendResponse(data, true));
+    } catch (error) {
+      return res
+        .status(500)
+        .send(this.sharedService.sendResponse('', false, error.message));
+    }
   }
 
   @Get('getOrderById')
@@ -334,6 +343,83 @@ export class OrderController {
         .send(this.sharedService.sendResponse('', false, error.message));
     }
   }
+
+  @Post('addOrderTracking')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/orders',
+        filename: (req, file, callback) => {
+          const unique = Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          const fileName = `${unique}${ext}`;
+          callback(null, fileName);
+        },
+      }),
+    }),
+  )
+  @Role(Roles.Admin)
+  async addOrderTracking(
+    @Req() req: Request,
+    @Res() res: Response,
+    @UploadedFile()
+    file: Express.Multer.File,
+    @Body('orderId') orderId: string,
+  ) {
+    try {
+      const getfile: any = await getFile(file.path);
+      const json: OrderLineCSVDTO[] = await this.sharedService.parseCsvFile(
+        getfile,
+        OrderLineCSVDTO,
+      );
+
+      await this.prisma.$transaction(
+        async (tx) => {
+          for (let orderLine of json) {
+            console.log(orderLine, 'input');
+
+            const data = await tx.orderLine.update({
+              where: {
+                id: orderLine.Orderline,
+              },
+              data: {
+                trackingCompany: orderLine.Tracking_company ?? undefined,
+                trackingNo: orderLine.Tracking_number ?? undefined,
+              },
+            });
+            console.log(data, 'data');
+          }
+        },
+        { timeout: 200000 },
+      );
+
+      await deleteFile(file.path);
+      return res
+        .status(200)
+        .send(
+          this.sharedService.sendResponse(
+            '',
+            true,
+            'Tracking added sucessfully.',
+          ),
+        );
+    } catch (error) {
+      console.log(error);
+
+      await deleteFile(file.path);
+      return res
+        .status(500)
+        .send(
+          this.sharedService.sendResponse(
+            '',
+            false,
+            'Something went wrong.Try again later.',
+          ),
+        );
+    }
+  }
+
+  // addOrderTracking
 
   @Get('getUserOrders')
   @Role(Roles.Admin)

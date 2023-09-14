@@ -62,6 +62,8 @@ export class SharedService {
       });
 
       parser.on('error', (error) => {
+        console.log(error, 'error');
+
         reject(error);
       });
 

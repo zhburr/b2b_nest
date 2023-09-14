@@ -160,7 +160,7 @@ export class OrderService {
       },
     });
 
-    return this.sharedService.sendResponse(orderList, true);
+    return orderList;
   }
 
   async checkUserOrderId(userId: number, orderId: number) {
@@ -285,34 +285,51 @@ export class OrderService {
 
   async getInvoiceData(order) {
     const invoiceList = [];
-    const orderMap = order.OrderLine.reduce((map, item) => {
-      if (map[item.productSku]) {
-        map[item.productSku] += item.productQuantity;
-      } else {
-        map[item.productSku] = item.productQuantity;
-      }
-      return map;
-    }, {});
+    // const orderMap = order.OrderLine.reduce((map, item) => {
+    //   if (map[item.productSku]) {
+    //     map[item.productSku] += item.productQuantity;
+    //   } else {
+    //     map[item.productSku] = item.productQuantity;
+    //   }
+    //   return map;
+    // }, {});
 
-    for (const [key, value] of Object.entries(orderMap)) {
-      const product = await this.prisma.product.findUnique({
-        where: {
-          sku: key,
-        },
-      });
+    const orderMap = order.OrderLine;
 
-      const totalWeight = Number(product.weight) * Number(value);
+    for (let item of order.OrderLine) {
+      const totalWeight =
+        Number(item.product.weight) * Number(item.productQuantity);
       const price = await this.getPostageByWeight(totalWeight);
       const editedProduct = {
-        ...product,
+        ...item,
         totalWeight,
         totalPrice: price,
-        totalOrderQuantity: value,
       };
 
       invoiceList.push(editedProduct);
     }
-    return { invoiceList };
+
+    // for (const [key, value] of Object.entries(orderMap)) {
+    //   const product = await this.prisma.product.findUnique({
+    //     where: {
+    //       sku: key,
+    //     },
+    //   });
+
+    //   const totalWeight = Number(product.weight) * Number(value);
+    //   const price = await this.getPostageByWeight(totalWeight);
+    //   const editedProduct = {
+    //     ...product,
+    //     totalWeight,
+    //     totalPrice: price,
+    //     totalOrderQuantity: value,
+    //   };
+
+    //   invoiceList.push(editedProduct);
+    // }
+    // return { invoiceList };
+
+    return invoiceList;
   }
 
   async getPostageByWeight(weight: number) {

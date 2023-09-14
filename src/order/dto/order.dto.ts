@@ -99,3 +99,12 @@ export class UpdateOrderLineDTO {
   @IsString()
   trackingCompany: string;
 }
+
+export class OrderLineCSVDTO {
+  @Transform(({ value }) => {
+    return Number(value);
+  })
+  Orderline: number;
+  Tracking_number: string;
+  Tracking_company: string;
+}
