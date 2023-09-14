@@ -21,16 +21,26 @@ model User {
   emailVerified   Boolean           @default(false)
   otp             Int?
   role            Roles
-  balance         Decimal           @default(0) @db.Decimal(5, 2)
-  credit          Decimal           @default(0) @db.Decimal(5, 2)
   canUploadOrder  Boolean           @default(true)
   createdAt       DateTime          @default(now())
   updateAt        DateTime          @updatedAt
   ProductApproval ProductApproval[]
   Product         Product[]
   OrderUpload     OrderUpload[]
+  Payment         Payment[]
 
   @@map("users")
+}
+
+model Payment {
+  id               Int         @id @default(autoincrement())
+  paymentType      PaymentType @default(Debit)
+  amount           Decimal     @default(0) @db.Decimal(5, 2)
+  availableBalance Decimal     @default(0) @db.Decimal(5, 2)
+  description      String?
+  userId           Int
+  createdAt        DateTime    @default(now())
+  user             User        @relation(fields: [userId], references: [id])
 }
 
 model ProductApproval {
@@ -123,4 +133,9 @@ enum Status {
 enum Packaging {
   Parcel
   Large
+}
+
+enum PaymentType {
+  Debit
+  Credit
 }
