@@ -265,6 +265,12 @@ export class OrderService {
     return this.sharedService.sendResponse(allPostage, true);
   }
 
+  async getAllLabelPrice() {
+    const allPostage = await this.prisma.labelPrice.findMany({});
+
+    return this.sharedService.sendResponse(allPostage, true);
+  }
+
   async getAllPendingOrder() {
     const order = await this.prisma.orderUpload.findMany({
       where: {
@@ -285,16 +291,6 @@ export class OrderService {
 
   async getInvoiceData(order) {
     const invoiceList = [];
-    // const orderMap = order.OrderLine.reduce((map, item) => {
-    //   if (map[item.productSku]) {
-    //     map[item.productSku] += item.productQuantity;
-    //   } else {
-    //     map[item.productSku] = item.productQuantity;
-    //   }
-    //   return map;
-    // }, {});
-
-    const orderMap = order.OrderLine;
 
     for (let item of order.OrderLine) {
       const totalWeight =
@@ -308,26 +304,6 @@ export class OrderService {
 
       invoiceList.push(editedProduct);
     }
-
-    // for (const [key, value] of Object.entries(orderMap)) {
-    //   const product = await this.prisma.product.findUnique({
-    //     where: {
-    //       sku: key,
-    //     },
-    //   });
-
-    //   const totalWeight = Number(product.weight) * Number(value);
-    //   const price = await this.getPostageByWeight(totalWeight);
-    //   const editedProduct = {
-    //     ...product,
-    //     totalWeight,
-    //     totalPrice: price,
-    //     totalOrderQuantity: value,
-    //   };
-
-    //   invoiceList.push(editedProduct);
-    // }
-    // return { invoiceList };
 
     return invoiceList;
   }
@@ -396,5 +372,71 @@ export class OrderService {
     });
 
     return orders;
+  }
+
+  async upsertLabelPrice(dto: UpsertPostageDTO) {
+    try {
+      const existingPostage = await this.prisma.labelPrice.findFirst({
+        where: {
+          OR: [
+            {
+              weight_from: {
+                lte: dto.weightFrom,
+              },
+              weight_to: {
+                gte: dto.weightFrom,
+              },
+            },
+            {
+              weight_from: {
+                lte: dto.weightTo,
+              },
+              weight_to: {
+                gte: dto.weightTo,
+              },
+            },
+            {
+              weight_from: {
+                gte: dto.weightFrom,
+              },
+              weight_to: {
+                lte: dto.weightTo,
+              },
+            },
+          ],
+          NOT: {
+            id: dto.id,
+          },
+        },
+      });
+
+      if (existingPostage) {
+        throw new Error(`This combination already exist.`);
+      } else {
+        const upsertPostage = await this.prisma.labelPrice.upsert({
+          where: {
+            id: dto.id,
+          },
+          update: {
+            weight_from: dto.weightFrom,
+            weight_to: dto.weightTo,
+            price: dto.price,
+          },
+          create: {
+            weight_from: dto.weightFrom,
+            weight_to: dto.weightTo,
+            price: dto.price,
+          },
+        });
+
+        return this.sharedService.sendResponse(
+          upsertPostage,
+          true,
+          'Label price upsert sucessfully ',
+        );
+      }
+    } catch (error) {
+      return this.sharedService.sendResponse({}, false, error.message);
+    }
   }
 }

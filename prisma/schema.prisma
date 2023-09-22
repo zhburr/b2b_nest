@@ -118,6 +118,15 @@ model Postage {
   updateAt    DateTime @updatedAt
 }
 
+model LabelPrice {
+  id          Int      @id @default(autoincrement())
+  weight_from Int
+  weight_to   Int
+  price       Decimal  @db.Decimal(5, 2)
+  createdAt   DateTime @default(now())
+  updateAt    DateTime @updatedAt
+}
+
 enum Roles {
   Customer
   Client

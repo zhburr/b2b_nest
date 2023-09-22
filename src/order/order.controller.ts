@@ -24,7 +24,7 @@ import {
   UpsertPostageDTO,
 } from './dto';
 import { Roles as Role } from 'src/roles.decorator';
-import { Roles } from '@prisma/client';
+import { PaymentType, Roles } from '@prisma/client';
 import { Response, Request } from 'express';
 import { SharedService } from 'src/shared/shared.service';
 import { deleteFile, getFile } from 'src/common/helper';
@@ -77,16 +77,30 @@ export class OrderController {
     return this.orderService.upsertPostage(dto);
   }
 
+  @Post('upsertLabelPrice')
+  @Role(Roles.Admin)
+  upsertLabelPrice(@Body() dto: UpsertPostageDTO) {
+    return this.orderService.upsertLabelPrice(dto);
+  }
+
+  @Get('getAllLabelPrice')
+  @Role(Roles.Admin, Roles.Client)
+  getAllLablePrice() {
+    return this.orderService.getAllLabelPrice();
+  }
+
   @Get('getUserOrderList')
   @Role(Roles.Client)
-  getUserOrderList(@Req() req: Request, @Res() res: Response) {
+  async getUserOrderList(@Req() req: Request, @Res() res: Response) {
     try {
-      const data = this.orderService.getUserOrderList(req['user']);
+      const data = await this.orderService.getUserOrderList(req['user']);
       return res.status(200).send(this.sharedService.sendResponse(data, true));
     } catch (error) {
       return res
         .status(500)
-        .send(this.sharedService.sendResponse('', false, error.message));
+        .send(
+          this.sharedService.sendResponse('', false, 'Something went wrong.'),
+        );
     }
   }
 
@@ -202,21 +216,6 @@ export class OrderController {
   ) {
     try {
       await this.prisma.$transaction(async (tx) => {
-        // const order = await this.orderService.updateOrderField(
-        //   Number(orderId),
-        //   {
-        //     totalAmount: Number(totalAmount),
-        //     invoice: file.filename,
-        //   },
-        // );
-
-        // const updateData = {
-        //   balance: {
-        //     increment: totalAmount,
-        //   },
-        // };
-        // await this.userService.updateUserFields(order.userId, updateData);
-
         const order = await tx.orderUpload.update({
           where: { id: Number(orderId) },
           data: {
@@ -225,15 +224,29 @@ export class OrderController {
           },
         });
 
-        const user = await tx.user.update({
+        const latestPayment = await tx.payment.findFirst({
           where: {
-            id: order.userId,
+            userId: order.userId,
           },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
+
+        const addNewPayment = await tx.payment.create({
           data: {
-            balance: {
-              increment: Number(totalAmount),
-            },
+            userId: order.userId,
+            paymentType: PaymentType.Debit,
+            amount: totalAmount,
+            description: `Debited amount for the order ${orderId}`,
+            availableBalance: latestPayment
+              ? Number(latestPayment.availableBalance) - Number(totalAmount)
+              : Number(totalAmount) * -1,
           },
+        });
+
+        const user = await tx.user.findUnique({
+          where: { id: order.userId },
         });
 
         await this.sharedService.sendEmail(
