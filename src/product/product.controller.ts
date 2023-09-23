@@ -18,6 +18,7 @@ import {
   GetProductByUserIdDTO,
   GetProductsDTO,
   ProductCSVDto,
+  UpdateProduct,
   UpdateProductApprovalStatus,
   UpdateUserProductAdminDTO,
   updateProductQuantityDTO,
@@ -26,6 +27,7 @@ import { Response, Request } from 'express';
 import { Roles as Role } from 'src/roles.decorator';
 import { Roles } from '@prisma/client';
 import { SharedService } from 'src/shared/shared.service';
+import { Public } from 'src/public.decorator';
 
 @Controller('product')
 export class ProductController {
@@ -116,9 +118,31 @@ export class ProductController {
 
   @Post('updateProduct')
   @Role(Roles.Client)
-  updateProduct() {
+  async updateProduct(@Res() res: Response, @Body() dto: UpdateProduct) {
     try {
-    } catch (error) {}
+      const data = {
+        title: dto.title,
+        description: dto.description ?? '',
+      };
+      const product = await this.productService.updateProductBySKU(
+        dto.sku,
+        data,
+      );
+
+      return res
+        .status(200)
+        .send(
+          this.sharedService.sendResponse(
+            null,
+            true,
+            `Product has been updated`,
+          ),
+        );
+    } catch (error) {
+      return res
+        .status(500)
+        .send(this.sharedService.sendResponse('Something went wrong.', false));
+    }
   }
 
   @Post('updateProductQuantity')
@@ -137,9 +161,12 @@ export class ProductController {
         Price: product.price,
         Weight: product.weight,
       };
-      const csv = await this.sharedService.createCsv(
+      const headers = Object.keys(data);
+
+      const csv = await this.sharedService.generateCsv(
         [data],
-        'uploads/products',
+        `uploads/products`,
+        headers,
       );
 
       const newProductUpload = await this.productService.uploadProductListing(
@@ -160,6 +187,112 @@ export class ProductController {
       return res
         .status(500)
         .send(this.sharedService.sendResponse('', false, error.message));
+    }
+  }
+
+  @Post('addNewProduct')
+  @Role(Roles.Client)
+  async addNewProduct(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Body() dto: ProductCSVDto,
+  ) {
+    try {
+      const product = await this.productService.getProductBySKU(dto.SKU);
+
+      if (product) {
+        return res
+          .status(500)
+          .send(
+            this.sharedService.sendResponse(
+              null,
+              false,
+              'Product already exist with the given SKU.',
+            ),
+          );
+      }
+
+      const data = {
+        Name: dto.Name,
+        SKU: dto.SKU,
+        Description: dto.Description ?? '',
+        Quantity: dto.Quantity,
+        Price: dto.Price,
+        Weight: dto.Weight,
+      };
+
+      const headers = Object.keys(data);
+
+      const csv = await this.sharedService.generateCsv(
+        [data],
+        `uploads/products`,
+        headers,
+      );
+
+      const newProductUpload = await this.productService.uploadProductListing(
+        req['user'].id,
+        csv,
+      );
+
+      return res
+        .status(200)
+        .send(
+          this.sharedService.sendResponse(
+            '',
+            true,
+            'Products has been uploaded for quantity update',
+          ),
+        );
+    } catch (error) {
+      return res
+        .status(500)
+        .send(
+          this.sharedService.sendResponse(null, false, 'Something went wrong.'),
+        );
+    }
+  }
+
+  @Post('uploadProductImage')
+  @Role(Roles.Client)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/productsImage',
+        filename: (req, file, callback) => {
+          const unique = Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          const fileName = `${unique}${ext}`;
+          callback(null, fileName);
+        },
+      }),
+    }),
+  )
+  async ploadPRoductImage(
+    @UploadedFile()
+    file: Express.Multer.File,
+    @Res() res: Response,
+    @Body('productSKU') sku: string,
+  ) {
+    try {
+      const update = await this.productService.updateProductBySKU(sku, {
+        image: file.filename,
+      });
+
+      return res
+        .status(200)
+        .send(
+          this.sharedService.sendResponse(
+            null,
+            true,
+            'Image updated sucessfully.',
+          ),
+        );
+    } catch (error) {
+      return res
+        .status(500)
+        .send(
+          this.sharedService.sendResponse(null, false, 'Something went wrong.'),
+        );
     }
   }
 }

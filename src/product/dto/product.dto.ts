@@ -96,3 +96,16 @@ export class updateProductQuantityDTO {
   @IsNotEmpty()
   newQuantity: number;
 }
+
+export class UpdateProduct {
+  @IsString()
+  @IsNotEmpty()
+  sku: string;
+
+  @IsString()
+  @IsNotEmpty()
+  title: string;
+
+  @IsString()
+  description: string;
+}

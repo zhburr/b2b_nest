@@ -19,7 +19,6 @@ export class ProductService {
   ) {}
 
   async uploadProductListing(userId: number, fileName: string) {
-    // try {
     const createProductListing = await this.prisma.productApproval.create({
       data: {
         csv: fileName,
@@ -28,15 +27,6 @@ export class ProductService {
     });
 
     return createProductListing;
-
-    //   return this.sharedService.sendResponse(
-    //     createProductListing,
-    //     true,
-    //     'Products has been uploaded sucessfully',
-    //   );
-    // } catch (error) {
-    //   await deleteFile(file.path);
-    // }
   }
 
   async allProductApprovalOfUser(user: User) {
@@ -84,7 +74,7 @@ export class ProductService {
     });
 
     return this.sharedService.sendResponse(
-      {},
+      null,
       true,
       `Listing has been ${dto.status}`,
     );
@@ -127,9 +117,6 @@ export class ProductService {
     const products = await this.prisma.product.findMany({
       where: {
         userId: user.id,
-      },
-      orderBy: {
-        updateAt: 'desc',
       },
       skip: dto.pageIndex * dto.pageSize,
       take: dto.pageSize,
@@ -211,5 +198,14 @@ export class ProductService {
       },
     });
     return product;
+  }
+
+  async updateProductBySKU(sku: string, data: any) {
+    const update = await this.prisma.product.update({
+      where: {
+        sku: sku,
+      },
+      data,
+    });
   }
 }

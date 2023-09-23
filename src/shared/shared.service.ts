@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import * as csvParser from 'csv-parser';
+import { createObjectCsvWriter } from 'csv-writer';
 import { createFile } from 'src/common/helper';
 @Injectable()
 export class SharedService {
@@ -89,6 +90,23 @@ export class SharedService {
 
     // Write CSV content to the file
     await createFile(path, fileName, csvContent);
+    return fileName;
+  }
+
+  async generateCsv(
+    data: any[],
+    filePath: string,
+    headers: string[],
+  ): Promise<string> {
+    const fileName = `${this.unique()}.csv`;
+
+    const csvWriter = createObjectCsvWriter({
+      path: `${filePath}/${fileName}`,
+      header: headers.map((key) => ({ id: key, title: key })),
+    });
+
+    await csvWriter.writeRecords(data);
+
     return fileName;
   }
 }

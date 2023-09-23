@@ -69,14 +69,11 @@ export class UserController {
   async getPayment(@Res() res: Response, @Body() dto: GetPaymentDTO) {
     try {
       const paymentList = await this.userService.getPaymentList(dto);
-      console.log(paymentList);
 
       return res
         .status(200)
         .send(this.sharedService.sendResponse(paymentList, true));
     } catch (error) {
-      console.log(error);
-
       return res
         .status(500)
         .send(
