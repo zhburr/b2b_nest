@@ -22,6 +22,7 @@ model User {
   emailVerified   Boolean           @default(false)
   otp             Int?
   role            Roles
+  avatar          String?
   canUploadOrder  Boolean           @default(true)
   createdAt       DateTime          @default(now())
   updateAt        DateTime          @updatedAt

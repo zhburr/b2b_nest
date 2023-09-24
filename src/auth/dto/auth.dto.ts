@@ -9,6 +9,7 @@ import {
   MaxLength,
   MinLength,
   IsNumberString,
+  isEmail,
 } from 'class-validator';
 const roles: string[] = ['Admin', 'Client', 'Customer'];
 
@@ -117,4 +118,48 @@ export class CsvDto {
   Number_of_employees: number;
 
   // Add more properties as needed
+}
+
+export class UpdatePasswordDTO {
+  @IsNotEmpty()
+  @IsString()
+  currentPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  newPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @IsEmail()
+  email: string;
+}
+
+export class ListingRemovalEmails {
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @IsNotEmpty()
+  @IsString()
+  email: string;
+
+  @IsNotEmpty()
+  @IsString()
+  marketplace: string;
+
+  @IsNotEmpty()
+  @IsString()
+  productURL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  productName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  meeting: string;
+
+  @IsString()
+  comment: string;
 }

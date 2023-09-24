@@ -28,6 +28,7 @@ import { Roles as Role } from 'src/roles.decorator';
 import { Roles } from '@prisma/client';
 import { SharedService } from 'src/shared/shared.service';
 import { Public } from 'src/public.decorator';
+import { deleteFile } from 'src/common/helper';
 
 @Controller('product')
 export class ProductController {
@@ -252,8 +253,8 @@ export class ProductController {
     }
   }
 
-  @Post('uploadProductImage')
-  @Role(Roles.Client)
+  @Post('uploadUserImage')
+  @Role(Roles.Client, Roles.Admin)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -267,13 +268,22 @@ export class ProductController {
       }),
     }),
   )
-  async ploadPRoductImage(
+  async uploadProductImage(
     @UploadedFile()
     file: Express.Multer.File,
     @Res() res: Response,
     @Body('productSKU') sku: string,
   ) {
     try {
+      const product = await this.productService.getProductBySKU(sku);
+      if (product.image) {
+        console.log('deleted sucessfully');
+
+        await deleteFile(`uploads\\productsImage\\${product.image}`);
+      }
+
+      console.log(file);
+
       const update = await this.productService.updateProductBySKU(sku, {
         image: file.filename,
       });
