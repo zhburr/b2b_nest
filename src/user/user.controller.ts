@@ -11,7 +11,12 @@ import {
 import { Roles } from '@prisma/client';
 import { Roles as Role } from 'src/roles.decorator';
 import { UserService } from './user.service';
-import { AddNewPaymentDTO, GetPaymentDTO, UpdateUserDTO } from './dto';
+import {
+  AddNewPaymentDTO,
+  GetPaymentDTO,
+  UpdatePasswordDTO,
+  UpdateUserDTO,
+} from './dto';
 import { SharedService } from 'src/shared/shared.service';
 import { Response, Request } from 'express';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -20,6 +25,7 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { deleteFile } from 'src/common/helper';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 
 @Controller('user')
 export class UserController {
@@ -202,6 +208,60 @@ export class UserController {
             null,
             true,
             'Image updated sucessfully.',
+          ),
+        );
+    } catch (error) {
+      return res
+        .status(500)
+        .send(
+          this.sharedService.sendResponse(null, false, 'Something went wrong.'),
+        );
+    }
+  }
+
+  @Post('updatePassword')
+  @Role(Roles.Admin, Roles.Client)
+  async updatePassword(@Res() res: Response, @Body() dto: UpdatePasswordDTO) {
+    try {
+      const checkCurrentPassword = await this.prisma.user.findUnique({
+        where: {
+          email: dto.email,
+        },
+      });
+
+      const pwMatch = await bcrypt.compare(
+        dto.currentPassword,
+        checkCurrentPassword.password,
+      );
+
+      if (!pwMatch) {
+        return res
+          .status(500)
+          .send(
+            this.sharedService.sendResponse(
+              null,
+              false,
+              'Your current password is not correct.',
+            ),
+          );
+      }
+      const hash = await bcrypt.hash(dto.newPassword, 10);
+      const update = await this.prisma.user.update({
+        where: {
+          email: dto.email,
+        },
+        data: {
+          password: hash,
+        },
+      });
+
+      return res
+        .status(200)
+        .send(
+          this.sharedService.sendResponse(
+            null,
+            true,
+            'Password has been updated sucessfully',
           ),
         );
     } catch (error) {

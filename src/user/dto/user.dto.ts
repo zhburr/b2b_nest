@@ -1,6 +1,6 @@
 import { PaymentType } from '@prisma/client';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsNotEmpty } from 'class-validator';
+import { IsBoolean, IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 export class UpdateUserDTO {
   @IsNotEmpty()
@@ -50,4 +50,19 @@ export class GetPaymentDTO {
 
   @IsNotEmpty()
   endDate: string;
+}
+
+export class UpdatePasswordDTO {
+  @IsNotEmpty()
+  @IsString()
+  currentPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  newPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @IsEmail()
+  email: string;
 }

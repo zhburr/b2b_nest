@@ -50,6 +50,9 @@ export class GetProductsDTO {
 
   @IsNotEmpty()
   pageSize: number;
+
+  @IsString()
+  searchText: string;
 }
 
 export class GetProductByUserIdDTO {
@@ -62,6 +65,9 @@ export class GetProductByUserIdDTO {
   @IsNotEmpty()
   @IsNumber()
   selectedUserId: number;
+
+  @IsString()
+  searchText: string;
 }
 
 export class UpdateUserProductAdminDTO {

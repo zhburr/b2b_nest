@@ -63,61 +63,6 @@ export class AuthController {
     return this.authService.resetPassword(dto);
   }
 
-  @Post('updatePassword')
-  // @Role(Roles.Admin, Roles.Client)
-  @Public()
-  async updatePassword(@Res() res: Response, @Body() dto: UpdatePasswordDTO) {
-    try {
-      const checkCurrentPassword = await this.prisma.user.findUnique({
-        where: {
-          email: dto.email,
-        },
-      });
-
-      const pwMatch = await bcrypt.compare(
-        dto.currentPassword,
-        checkCurrentPassword.password,
-      );
-
-      if (!pwMatch) {
-        return res
-          .status(500)
-          .send(
-            this.sharedService.sendResponse(
-              null,
-              false,
-              'Your current password is not correct.',
-            ),
-          );
-      }
-      const hash = await bcrypt.hash(dto.newPassword, 10);
-      const update = await this.prisma.user.update({
-        where: {
-          email: dto.email,
-        },
-        data: {
-          password: hash,
-        },
-      });
-
-      return res
-        .status(200)
-        .send(
-          this.sharedService.sendResponse(
-            null,
-            true,
-            'Password has been updated sucessfully',
-          ),
-        );
-    } catch (error) {
-      return res
-        .status(500)
-        .send(
-          this.sharedService.sendResponse(null, false, 'Something went wrong.'),
-        );
-    }
-  }
-
   @Post('listingRemovalEmail')
   @Public()
   async listingRemovalEmails(

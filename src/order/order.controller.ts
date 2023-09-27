@@ -22,6 +22,7 @@ import {
   UpdateOrderDTO,
   UpdateOrderLineDTO,
   UpsertPostageDTO,
+  createLabelDTO,
 } from './dto';
 import { Roles as Role } from 'src/roles.decorator';
 import { PaymentType, Roles } from '@prisma/client';
@@ -31,6 +32,7 @@ import { deleteFile, getFile } from 'src/common/helper';
 import { UserService } from 'src/user/user.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Public } from 'src/public.decorator';
+import * as ExcelJS from 'exceljs';
 
 @Controller('order')
 export class OrderController {
@@ -439,6 +441,251 @@ export class OrderController {
       return res
         .status(500)
         .send(this.sharedService.sendResponse('', false, error.message));
+    }
+  }
+
+  @Get('getOrderLineExcelFile')
+  @Role(Roles.Admin)
+  async getColouredExcelFile(
+    @Res() res: Response,
+    @Query('orderId') orderId: string,
+  ) {
+    try {
+      const orderLine = await this.prisma.orderLine.findMany({
+        where: {
+          orderId: Number(orderId),
+        },
+        include: {
+          product: true,
+        },
+      });
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Sheet1');
+      worksheet.columns = [
+        { header: 'Name', key: 'buyerName', width: 15 },
+        { header: 'Address1`', key: 'buyerAddress1', width: 20 },
+        { header: 'Address2`', key: 'buyerAddress2', width: 20 },
+        { header: 'Country`', key: 'buyerCountry', width: 20 },
+        { header: 'City`', key: 'buyerCity', width: 20 },
+        { header: 'Postcode`', key: 'buyerPostCode', width: 10 },
+        { header: 'Product SKU', key: 'productSku', width: 20 },
+        { header: 'Product quantity', key: 'productQuantity', width: 10 },
+        { header: 'Product location', key: 'productlocation', width: 20 },
+      ];
+
+      orderLine.forEach((row) => {
+        const newRow = { ...row, productlocation: row.product?.location };
+        worksheet.addRow(newRow);
+      });
+      const postcodes: { [postcode: string]: ExcelJS.Row[] } = {};
+      worksheet.eachRow({ includeEmpty: true }, (row: any, rowNumber: any) => {
+        if (rowNumber === 1) return; // Skip header row
+        const postcode = row.getCell('buyerPostCode').value as string;
+        if (postcodes[postcode]) {
+          postcodes[postcode].push(row);
+        } else {
+          postcodes[postcode] = [row];
+        }
+      });
+      // Apply highlighting to rows with the same postcode
+      Object.values(postcodes).forEach((rows) => {
+        if (rows.length > 1) {
+          rows.forEach((row) => {
+            row.eachCell((cell: any) => {
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFFF0000' },
+              };
+            });
+          });
+        }
+      });
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=${orderId}.xlsx`,
+      );
+      const buffer = await workbook.xlsx.writeBuffer();
+      res.end(buffer);
+    } catch (error) {
+      return res
+        .status(200)
+        .send(
+          this.sharedService.sendResponse(null, false, 'Something went wrong.'),
+        );
+    }
+  }
+
+  @Post('createLabelOrder')
+  @Role(Roles.Client)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/labels',
+        filename: (req, file, callback) => {
+          const unique = Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          const fileName = `${unique}${ext}`;
+          callback(null, fileName);
+        },
+      }),
+    }),
+  )
+  async createLabelOrder(
+    @UploadedFile()
+    file: Express.Multer.File,
+    @Body() dto: createLabelDTO,
+    @Res() res: Response,
+  ) {
+    try {
+      const createLabelOrder = await this.prisma.labelOrders.create({
+        data: {
+          weight_from: dto.weight_from,
+          weight_to: dto.weight_to,
+          price: dto.price,
+          inputFile: file.filename,
+          quantity: dto.quantity,
+          userId: dto.userId,
+        },
+      });
+
+      const adminUsers = await this.prisma.user.findMany({
+        where: {
+          role: Roles.Admin,
+        },
+      });
+
+      const emailHtml = `
+      <p>A print label order has been placed.Please visit the website to see the details.</p>
+      `;
+      for (let admin of adminUsers) {
+        await this.sharedService.sendEmail(
+          admin.email,
+          'Print label order',
+          emailHtml,
+        );
+      }
+
+      return res
+        .status(200)
+        .send(
+          this.sharedService.sendResponse(
+            null,
+            true,
+            'Label order has been placed',
+          ),
+        );
+    } catch (error) {
+      return res
+        .status(200)
+        .send(
+          this.sharedService.sendResponse(null, false, 'Something went wrong.'),
+        );
+    }
+  }
+
+  @Get('getLabelOrderList')
+  @Role(Roles.Client)
+  async getLabelOrderList(@Res() res: Response, @Query('email') email: string) {
+    try {
+      const list = await this.prisma.labelOrders.findMany({
+        where: {
+          user: {
+            email,
+          },
+        },
+      });
+
+      return res.status(200).send(this.sharedService.sendResponse(list, true));
+    } catch (error) {
+      return res
+        .status(500)
+        .send(
+          this.sharedService.sendResponse(null, false, 'Somehting went wrong.'),
+        );
+    }
+  }
+
+  @Post('getAllLabelOrderList')
+  @Role(Roles.Admin)
+  async getALlLabelOrderList(@Res() res: Response, @Body('all') all: boolean) {
+    try {
+      let whereClause = {};
+      if (!all) {
+        whereClause = {
+          deliverd: false,
+        };
+      }
+
+      const list = await this.prisma.labelOrders.findMany({
+        where: whereClause,
+        include: {
+          user: true,
+        },
+      });
+
+      return res.status(200).send(this.sharedService.sendResponse(list, true));
+    } catch (error) {
+      return res
+        .status(500)
+        .send(
+          this.sharedService.sendResponse(null, false, 'Somehting went wrong.'),
+        );
+    }
+  }
+
+  @Post('updateLabelOrder')
+  @Role(Roles.Admin)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/labels',
+        filename: (req, file, callback) => {
+          const unique = Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          const fileName = `${unique}${ext}`;
+          callback(null, fileName);
+        },
+      }),
+    }),
+  )
+  async updateLabelOrder(
+    @UploadedFile()
+    file: Express.Multer.File,
+    @Res() res: Response,
+    @Body('labelId') id: string,
+  ) {
+    try {
+      const update = await this.prisma.labelOrders.update({
+        where: {
+          id: Number(id),
+        },
+        data: {
+          outputFile: file.filename,
+          deliverd: true,
+        },
+      });
+
+      return res
+        .status(200)
+        .send(
+          this.sharedService.sendResponse(
+            null,
+            true,
+            'File uploaded sucessfully.',
+          ),
+        );
+    } catch (error) {
+      return res
+        .status(200)
+        .send(
+          this.sharedService.sendResponse(null, false, 'Something went wrong.'),
+        );
     }
   }
 }

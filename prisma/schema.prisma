@@ -30,6 +30,7 @@ model User {
   Product         Product[]
   OrderUpload     OrderUpload[]
   Payment         Payment[]
+  LabelOrders     LabelOrders[]
 
   @@map("users")
 }
@@ -125,6 +126,21 @@ model LabelPrice {
   weight_from Int
   weight_to   Int
   price       Decimal  @db.Decimal(5, 2)
+  createdAt   DateTime @default(now())
+  updateAt    DateTime @updatedAt
+}
+
+model LabelOrders {
+  id          Int      @id @default(autoincrement())
+  weight_from Int
+  weight_to   Int
+  quantity    Int
+  price       Decimal  @db.Decimal(5, 2)
+  inputFile   String
+  outputFile  String?
+  deliverd    Boolean  @default(false)
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
   updateAt    DateTime @updatedAt
 }

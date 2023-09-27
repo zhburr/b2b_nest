@@ -108,3 +108,35 @@ export class OrderLineCSVDTO {
   Tracking_number: string;
   Tracking_company: string;
 }
+
+export class createLabelDTO {
+  @IsNotEmpty()
+  @Transform(({ value }) => {
+    return Number(value);
+  })
+  userId: number;
+
+  @IsNotEmpty()
+  @Transform(({ value }) => {
+    return Number(value);
+  })
+  weight_from: number;
+
+  @IsNotEmpty()
+  @Transform(({ value }) => {
+    return Number(value);
+  })
+  weight_to: number;
+
+  @IsNotEmpty()
+  @Transform(({ value }) => {
+    return Number(value);
+  })
+  quantity: number;
+
+  @IsNotEmpty()
+  @Transform(({ value }) => {
+    return Number(value);
+  })
+  price: number;
+}
