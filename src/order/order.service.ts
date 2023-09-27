@@ -255,20 +255,40 @@ export class OrderService {
         );
       }
     } catch (error) {
-      return this.sharedService.sendResponse({}, false, error.message);
+      return this.sharedService.sendResponse(
+        {},
+        false,
+        'Somehting went wrong.',
+      );
     }
   }
 
   async getAllPostage() {
-    const allPostage = await this.prisma.postage.findMany({});
+    try {
+      const allPostage = await this.prisma.postage.findMany({});
 
-    return this.sharedService.sendResponse(allPostage, true);
+      return this.sharedService.sendResponse(allPostage, true);
+    } catch (error) {
+      return this.sharedService.sendResponse(
+        null,
+        false,
+        'Something went wrong.',
+      );
+    }
   }
 
   async getAllLabelPrice() {
-    const allPostage = await this.prisma.labelPrice.findMany({});
+    try {
+      const allPostage = await this.prisma.labelPrice.findMany({});
 
-    return this.sharedService.sendResponse(allPostage, true);
+      return this.sharedService.sendResponse(allPostage, true);
+    } catch (error) {
+      return this.sharedService.sendResponse(
+        null,
+        false,
+        'Something went wrong.',
+      );
+    }
   }
 
   async getAllPendingOrder() {
@@ -436,7 +456,11 @@ export class OrderService {
         );
       }
     } catch (error) {
-      return this.sharedService.sendResponse({}, false, error.message);
+      return this.sharedService.sendResponse(
+        {},
+        false,
+        'Something went wrong.',
+      );
     }
   }
 }

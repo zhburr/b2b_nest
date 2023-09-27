@@ -57,27 +57,35 @@ export class ProductService {
   }
 
   async updateProductApprovalStatus(dto: UpdateProductApprovalStatus) {
-    if (dto.status === Status.Approved) {
-      const productApproval = await this.prisma.productApproval.findUnique({
-        where: { id: dto.id },
+    try {
+      if (dto.status === Status.Approved) {
+        const productApproval = await this.prisma.productApproval.findUnique({
+          where: { id: dto.id },
+        });
+        await this.upsertProductFromCsv(productApproval);
+      }
+      const update = await this.prisma.productApproval.update({
+        where: {
+          id: dto.id,
+        },
+        data: {
+          status: dto.status,
+          remarks: dto.remarks ?? undefined,
+        },
       });
-      await this.upsertProductFromCsv(productApproval);
-    }
-    const update = await this.prisma.productApproval.update({
-      where: {
-        id: dto.id,
-      },
-      data: {
-        status: dto.status,
-        remarks: dto.remarks ?? undefined,
-      },
-    });
 
-    return this.sharedService.sendResponse(
-      null,
-      true,
-      `Listing has been ${dto.status}`,
-    );
+      return this.sharedService.sendResponse(
+        null,
+        true,
+        `Listing has been ${dto.status}`,
+      );
+    } catch (error) {
+      return this.sharedService.sendResponse(
+        null,
+        false,
+        'Something went wrong.',
+      );
+    }
   }
 
   // upsertProductfromcsv
@@ -114,207 +122,251 @@ export class ProductService {
   }
 
   async getProductListing(dto: GetProductsDTO, user: User) {
-    if (dto.searchText) {
-      const searchTextAsNumber = parseFloat(dto.searchText);
-      const products = await this.prisma.product.findMany({
-        where: {
-          userId: user.id,
-          OR: [
-            { title: { contains: dto.searchText } },
-            { sku: { contains: dto.searchText } },
-            { description: { contains: dto.searchText } },
-            {
-              quantity: isNaN(searchTextAsNumber)
-                ? undefined
-                : searchTextAsNumber,
-            },
-            {
-              price: isNaN(searchTextAsNumber) ? undefined : searchTextAsNumber,
-            },
-            {
-              weight: isNaN(searchTextAsNumber)
-                ? undefined
-                : searchTextAsNumber,
-            },
-            { location: { contains: dto.searchText } },
-          ],
-        },
-        skip: dto.pageIndex * dto.pageSize,
-        take: dto.pageSize,
-      });
+    try {
+      if (dto.searchText) {
+        const searchTextAsNumber = parseFloat(dto.searchText);
+        const products = await this.prisma.product.findMany({
+          where: {
+            userId: user.id,
+            OR: [
+              { title: { contains: dto.searchText } },
+              { sku: { contains: dto.searchText } },
+              { description: { contains: dto.searchText } },
+              {
+                quantity: isNaN(searchTextAsNumber)
+                  ? undefined
+                  : searchTextAsNumber,
+              },
+              {
+                price: isNaN(searchTextAsNumber)
+                  ? undefined
+                  : searchTextAsNumber,
+              },
+              {
+                weight: isNaN(searchTextAsNumber)
+                  ? undefined
+                  : searchTextAsNumber,
+              },
+              { location: { contains: dto.searchText } },
+            ],
+          },
+          skip: dto.pageIndex * dto.pageSize,
+          take: dto.pageSize,
+        });
 
-      const totalProduct = await this.prisma.product.count({
-        where: {
-          userId: user.id,
-          OR: [
-            { title: { contains: dto.searchText } },
-            { sku: { contains: dto.searchText } },
-            { description: { contains: dto.searchText } },
-            {
-              quantity: isNaN(searchTextAsNumber)
-                ? undefined
-                : searchTextAsNumber,
-            },
-            {
-              price: isNaN(searchTextAsNumber) ? undefined : searchTextAsNumber,
-            },
-            {
-              weight: isNaN(searchTextAsNumber)
-                ? undefined
-                : searchTextAsNumber,
-            },
-            { location: { contains: dto.searchText } },
-          ],
-        },
-      });
+        const totalProduct = await this.prisma.product.count({
+          where: {
+            userId: user.id,
+            OR: [
+              { title: { contains: dto.searchText } },
+              { sku: { contains: dto.searchText } },
+              { description: { contains: dto.searchText } },
+              {
+                quantity: isNaN(searchTextAsNumber)
+                  ? undefined
+                  : searchTextAsNumber,
+              },
+              {
+                price: isNaN(searchTextAsNumber)
+                  ? undefined
+                  : searchTextAsNumber,
+              },
+              {
+                weight: isNaN(searchTextAsNumber)
+                  ? undefined
+                  : searchTextAsNumber,
+              },
+              { location: { contains: dto.searchText } },
+            ],
+          },
+        });
 
-      return this.sharedService.sendResponse({ products, totalProduct }, true);
-    } else {
-      const products = await this.prisma.product.findMany({
-        where: {
-          userId: user.id,
-        },
-        skip: dto.pageIndex * dto.pageSize,
-        take: dto.pageSize,
-      });
+        return this.sharedService.sendResponse(
+          { products, totalProduct },
+          true,
+        );
+      } else {
+        const products = await this.prisma.product.findMany({
+          where: {
+            userId: user.id,
+          },
+          skip: dto.pageIndex * dto.pageSize,
+          take: dto.pageSize,
+        });
 
-      const totalProduct = await this.prisma.product.count({
-        where: { userId: user.id },
-      });
-      return this.sharedService.sendResponse({ products, totalProduct }, true);
+        const totalProduct = await this.prisma.product.count({
+          where: { userId: user.id },
+        });
+        return this.sharedService.sendResponse(
+          { products, totalProduct },
+          true,
+        );
+      }
+    } catch (error) {
+      return this.sharedService.sendResponse(
+        null,
+        false,
+        'Something went wrong.',
+      );
     }
   }
 
   async getSelectedUserProduct(dto: GetProductByUserIdDTO) {
-    if (dto.searchText) {
-      const searchTextAsNumber = parseFloat(dto.searchText);
-      const products = await this.prisma.product.findMany({
-        where: {
-          userId: dto.selectedUserId,
-          OR: [
-            { title: { contains: dto.searchText } },
-            { sku: { contains: dto.searchText } },
-            { description: { contains: dto.searchText } },
-            {
-              quantity: isNaN(searchTextAsNumber)
-                ? undefined
-                : searchTextAsNumber,
-            },
-            {
-              price: isNaN(searchTextAsNumber) ? undefined : searchTextAsNumber,
-            },
-            {
-              weight: isNaN(searchTextAsNumber)
-                ? undefined
-                : searchTextAsNumber,
-            },
-            { location: { contains: dto.searchText } },
-          ],
-        },
-        select: {
-          id: true,
-          title: true,
-          sku: true,
-          description: true,
-          quantity: true,
-          price: true,
-          userId: true,
-          image: true,
-          weight: true,
-          location: true,
-          packaging: true,
-        },
-        skip: dto.pageIndex * dto.pageSize,
-        take: dto.pageSize,
-      });
+    try {
+      if (dto.searchText) {
+        const searchTextAsNumber = parseFloat(dto.searchText);
+        const products = await this.prisma.product.findMany({
+          where: {
+            userId: dto.selectedUserId,
+            OR: [
+              { title: { contains: dto.searchText } },
+              { sku: { contains: dto.searchText } },
+              { description: { contains: dto.searchText } },
+              {
+                quantity: isNaN(searchTextAsNumber)
+                  ? undefined
+                  : searchTextAsNumber,
+              },
+              {
+                price: isNaN(searchTextAsNumber)
+                  ? undefined
+                  : searchTextAsNumber,
+              },
+              {
+                weight: isNaN(searchTextAsNumber)
+                  ? undefined
+                  : searchTextAsNumber,
+              },
+              { location: { contains: dto.searchText } },
+            ],
+          },
+          select: {
+            id: true,
+            title: true,
+            sku: true,
+            description: true,
+            quantity: true,
+            price: true,
+            userId: true,
+            image: true,
+            weight: true,
+            location: true,
+            packaging: true,
+          },
+          skip: dto.pageIndex * dto.pageSize,
+          take: dto.pageSize,
+        });
 
-      const totalProduct = await this.prisma.product.count({
-        where: {
-          userId: dto.selectedUserId,
-          OR: [
-            { title: { contains: dto.searchText } },
-            { sku: { contains: dto.searchText } },
-            { description: { contains: dto.searchText } },
-            {
-              quantity: isNaN(searchTextAsNumber)
-                ? undefined
-                : searchTextAsNumber,
-            },
-            {
-              price: isNaN(searchTextAsNumber) ? undefined : searchTextAsNumber,
-            },
-            {
-              weight: isNaN(searchTextAsNumber)
-                ? undefined
-                : searchTextAsNumber,
-            },
-            { location: { contains: dto.searchText } },
-          ],
-        },
-      });
+        const totalProduct = await this.prisma.product.count({
+          where: {
+            userId: dto.selectedUserId,
+            OR: [
+              { title: { contains: dto.searchText } },
+              { sku: { contains: dto.searchText } },
+              { description: { contains: dto.searchText } },
+              {
+                quantity: isNaN(searchTextAsNumber)
+                  ? undefined
+                  : searchTextAsNumber,
+              },
+              {
+                price: isNaN(searchTextAsNumber)
+                  ? undefined
+                  : searchTextAsNumber,
+              },
+              {
+                weight: isNaN(searchTextAsNumber)
+                  ? undefined
+                  : searchTextAsNumber,
+              },
+              { location: { contains: dto.searchText } },
+            ],
+          },
+        });
 
-      return this.sharedService.sendResponse({ products, totalProduct }, true);
-    } else {
-      const products = await this.prisma.product.findMany({
-        where: {
-          userId: dto.selectedUserId,
-        },
-        select: {
-          id: true,
-          title: true,
-          sku: true,
-          description: true,
-          quantity: true,
-          price: true,
-          userId: true,
-          image: true,
-          weight: true,
-          location: true,
-          packaging: true,
-        },
-        skip: dto.pageIndex * dto.pageSize,
-        take: dto.pageSize,
-      });
+        return this.sharedService.sendResponse(
+          { products, totalProduct },
+          true,
+        );
+      } else {
+        const products = await this.prisma.product.findMany({
+          where: {
+            userId: dto.selectedUserId,
+          },
+          select: {
+            id: true,
+            title: true,
+            sku: true,
+            description: true,
+            quantity: true,
+            price: true,
+            userId: true,
+            image: true,
+            weight: true,
+            location: true,
+            packaging: true,
+          },
+          skip: dto.pageIndex * dto.pageSize,
+          take: dto.pageSize,
+        });
 
-      const totalProduct = await this.prisma.product.count({
-        where: { userId: dto.selectedUserId },
-      });
+        const totalProduct = await this.prisma.product.count({
+          where: { userId: dto.selectedUserId },
+        });
 
-      return this.sharedService.sendResponse({ products, totalProduct }, true);
+        return this.sharedService.sendResponse(
+          { products, totalProduct },
+          true,
+        );
+      }
+    } catch (error) {
+      return this.sharedService.sendResponse(
+        null,
+        false,
+        'Something went wrong.',
+      );
     }
   }
 
   async updateUserProductByAdmin(dto: UpdateUserProductAdminDTO) {
-    const updateProduct = await this.prisma.product.update({
-      where: {
-        id: dto.productId,
-      },
-      data: {
-        location: dto.productLocation,
-        packaging: Packaging[dto.productPackaging] ?? null,
-        weight: dto.productWeight,
-        quantity: dto.productQuantity,
-      },
-      select: {
-        id: true,
-        title: true,
-        sku: true,
-        description: true,
-        quantity: true,
-        price: true,
-        userId: true,
-        image: true,
-        weight: true,
-        location: true,
-        packaging: true,
-      },
-    });
+    try {
+      const updateProduct = await this.prisma.product.update({
+        where: {
+          id: dto.productId,
+        },
+        data: {
+          location: dto.productLocation,
+          packaging: Packaging[dto.productPackaging] ?? null,
+          weight: dto.productWeight,
+          quantity: dto.productQuantity,
+        },
+        select: {
+          id: true,
+          title: true,
+          sku: true,
+          description: true,
+          quantity: true,
+          price: true,
+          userId: true,
+          image: true,
+          weight: true,
+          location: true,
+          packaging: true,
+        },
+      });
 
-    return this.sharedService.sendResponse(
-      updateProduct,
-      true,
-      'Product has been updated',
-    );
+      return this.sharedService.sendResponse(
+        updateProduct,
+        true,
+        'Product has been updated',
+      );
+    } catch (error) {
+      return this.sharedService.sendResponse(
+        null,
+        false,
+        'Something went wrong.',
+      );
+    }
   }
 
   async getProductBySKU(sku: string) {
