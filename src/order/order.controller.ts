@@ -75,14 +75,166 @@ export class OrderController {
 
   @Post('upsertPostage')
   @Role(Roles.Admin)
-  upsertPostage(@Body() dto: UpsertPostageDTO) {
-    return this.orderService.upsertPostage(dto);
+  async upsertPostage(@Body() dto: UpsertPostageDTO, @Res() res: Response) {
+    try {
+      const existingPostage = await this.prisma.postage.findFirst({
+        where: {
+          OR: [
+            {
+              weight_from: {
+                lte: dto.weightFrom,
+              },
+              weight_to: {
+                gte: dto.weightFrom,
+              },
+            },
+            {
+              weight_from: {
+                lte: dto.weightTo,
+              },
+              weight_to: {
+                gte: dto.weightTo,
+              },
+            },
+            {
+              weight_from: {
+                gte: dto.weightFrom,
+              },
+              weight_to: {
+                lte: dto.weightTo,
+              },
+            },
+          ],
+          NOT: {
+            id: dto.id,
+          },
+        },
+      });
+
+      if (existingPostage) {
+        return res
+          .status(500)
+          .send(
+            this.sharedService.sendResponse(
+              null,
+              false,
+              'This combination already exist.',
+            ),
+          );
+      } else {
+        const upsertPostage = await this.prisma.postage.upsert({
+          where: {
+            id: dto.id,
+          },
+          update: {
+            weight_from: dto.weightFrom,
+            weight_to: dto.weightTo,
+            price: dto.price,
+          },
+          create: {
+            weight_from: dto.weightFrom,
+            weight_to: dto.weightTo,
+            price: dto.price,
+          },
+        });
+
+        return res
+          .status(200)
+          .send(
+            this.sharedService.sendResponse(
+              upsertPostage,
+              true,
+              'Postage upsert sucessfully ',
+            ),
+          );
+      }
+    } catch (error) {
+      return res
+        .status(500)
+        .send(
+          this.sharedService.sendResponse({}, false, 'Somehting went wrong.'),
+        );
+    }
   }
 
   @Post('upsertLabelPrice')
   @Role(Roles.Admin)
-  upsertLabelPrice(@Body() dto: UpsertPostageDTO) {
-    return this.orderService.upsertLabelPrice(dto);
+  async upsertLabelPrice(@Body() dto: UpsertPostageDTO, @Res() res: Response) {
+    try {
+      const existingPostage = await this.prisma.labelPrice.findFirst({
+        where: {
+          OR: [
+            {
+              weight_from: {
+                lte: dto.weightFrom,
+              },
+              weight_to: {
+                gte: dto.weightFrom,
+              },
+            },
+            {
+              weight_from: {
+                lte: dto.weightTo,
+              },
+              weight_to: {
+                gte: dto.weightTo,
+              },
+            },
+            {
+              weight_from: {
+                gte: dto.weightFrom,
+              },
+              weight_to: {
+                lte: dto.weightTo,
+              },
+            },
+          ],
+          NOT: {
+            id: dto.id,
+          },
+        },
+      });
+
+      if (existingPostage) {
+        return res
+          .status(500)
+          .send(
+            this.sharedService.sendResponse(
+              null,
+              false,
+              'This combination already exist.',
+            ),
+          );
+      } else {
+        const upsertPostage = await this.prisma.labelPrice.upsert({
+          where: {
+            id: dto.id,
+          },
+          update: {
+            weight_from: dto.weightFrom,
+            weight_to: dto.weightTo,
+            price: dto.price,
+          },
+          create: {
+            weight_from: dto.weightFrom,
+            weight_to: dto.weightTo,
+            price: dto.price,
+          },
+        });
+
+        return this.sharedService.sendResponse(
+          upsertPostage,
+          true,
+          'Label price upsert sucessfully ',
+        );
+      }
+    } catch (error) {
+      return this.sharedService.sendResponse(
+        {},
+        false,
+        'Something went wrong.',
+      );
+    }
   }
 
   @Get('getAllLabelPrice')
@@ -402,7 +554,6 @@ export class OrderController {
         { timeout: 200000 },
       );
 
-      await deleteFile(file.path);
       return res
         .status(200)
         .send(

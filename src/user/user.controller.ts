@@ -23,9 +23,10 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
-import { deleteFile } from 'src/common/helper';
+import { checkIfFileOrDirectoryExists, deleteFile } from 'src/common/helper';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { error } from 'console';
 
 @Controller('user')
 export class UserController {
@@ -169,6 +170,7 @@ export class UserController {
           const unique = Math.round(Math.random() * 1e9);
           const ext = extname(file.originalname);
           const fileName = `${unique}${ext}`;
+          console.log(fileName);
           callback(null, fileName);
         },
       }),
@@ -181,6 +183,10 @@ export class UserController {
     @Body('email') email: string,
   ) {
     try {
+      console.log(file, 'file');
+
+      console.log('in user upload image');
+
       const user = await this.prisma.user.findUnique({
         where: {
           email,
@@ -189,7 +195,11 @@ export class UserController {
       if (user.avatar) {
         console.log('deleted sucessfully');
 
-        await deleteFile(`uploads\\usersImage\\${user.avatar}`);
+        if (
+          checkIfFileOrDirectoryExists(`uploads\\usersImage\\${user.avatar}`)
+        ) {
+          await deleteFile(`uploads\\usersImage\\${user.avatar}`);
+        }
       }
 
       const updateUser = await this.prisma.user.update({
@@ -211,6 +221,8 @@ export class UserController {
           ),
         );
     } catch (error) {
+      console.log('here comes the error', error);
+
       return res
         .status(500)
         .send(

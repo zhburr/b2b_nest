@@ -253,8 +253,8 @@ export class ProductController {
     }
   }
 
-  @Post('uploadUserImage')
-  @Role(Roles.Client, Roles.Admin)
+  @Post('uploadProductImage')
+  @Role(Roles.Client)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
