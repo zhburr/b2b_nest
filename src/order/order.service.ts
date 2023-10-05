@@ -39,6 +39,7 @@ export class OrderService {
           sku: {
             in: productSKUs,
           },
+          userId: user.id,
         },
       });
 

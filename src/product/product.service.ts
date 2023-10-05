@@ -59,6 +59,8 @@ export class ProductService {
   async updateProductApprovalStatus(dto: UpdateProductApprovalStatus) {
     try {
       if (dto.status === Status.Approved) {
+        console.log('in approve');
+
         const productApproval = await this.prisma.productApproval.findUnique({
           where: { id: dto.id },
         });
@@ -80,6 +82,8 @@ export class ProductService {
         `Listing has been ${dto.status}`,
       );
     } catch (error) {
+      console.log(error);
+
       return this.sharedService.sendResponse(
         null,
         false,
@@ -101,21 +105,74 @@ export class ProductService {
       await this.prisma.$transaction(async (tx) => {
         for (const product of jsonData) {
           await tx.$queryRaw`
-  INSERT INTO \`products\` (\`sku\`, \`title\`, \`quantity\`, \`userId\`, \`price\`, \`weight\`, \`updateAt\`)
-  VALUES (${product.SKU}, ${product.Name}, ${Number(product.Quantity)}, ${
+      INSERT INTO \`products\` (\`sku\`, \`title\`, \`quantity\`, \`userId\`, \`price\`, \`weight\`, \`updateAt\`)
+      VALUES (${product.SKU}, ${product.Name}, ${Number(product.Quantity)}, ${
             dto.userId
           }, ${Number(product.Price) || null}, ${
             product.Weight
           }, CURRENT_TIMESTAMP)
-  ON DUPLICATE KEY UPDATE
-    \`quantity\` = \`products\`.\`quantity\` + ${Number(product.Quantity)},
-    \`title\` = ${product.Name},
-    \`price\` = ${Number(product.Price) || null},
-    \`weight\` = ${product.Weight},
-    \`updateAt\` = CURRENT_TIMESTAMP;
-`;
+      ON DUPLICATE KEY UPDATE
+        \`quantity\` = \`products\`.\`quantity\` + ${Number(product.Quantity)},
+        \`title\` = ${product.Name},
+        \`price\` = ${Number(product.Price) || null},
+        \`weight\` = ${product.Weight},
+        \`updateAt\` = CURRENT_TIMESTAMP;
+    `;
         }
       });
+
+      // await this.prisma.$transaction(
+      //   async (tx) => {
+      //     for (const product of jsonData) {
+      //       const getProduct = await tx.product.findFirst({
+      //         where: {
+      //           userId: dto.userId,
+      //           sku: product.SKU,
+      //         },
+      //       });
+
+      //       console.log(getProduct, 'get product');
+
+      //       if (getProduct) {
+      //         console.log('in if updateProduct');
+
+      //         const updateProduct = await tx.product.update({
+      //           where: {
+      //             userId: dto.id,
+      //             sku: product.SKU,
+      //           },
+      //           data: {
+      //             quantity: {
+      //               increment: product.Quantity,
+      //             },
+      //             title: product.Name,
+      //             description: product.Description,
+      //             price: product.Price,
+      //             weight: product.Weight,
+      //           },
+      //         });
+      //         console.log(updateProduct, 'update product');
+      //       } else {
+      //         console.log('in else createProduct');
+
+      //         const createProduct = await tx.product.create({
+      //           data: {
+      //             sku: product.SKU,
+      //             userId: dto.userId,
+      //             title: product.Name,
+      //             description: product.Description,
+      //             quantity: product.Quantity,
+      //             price: product.Price,
+      //             weight: product.Weight,
+      //           },
+      //         });
+
+      //         console.log(createProduct, 'crate product');
+      //       }
+      //     }
+      //   },
+      //   { timeout: 200000 },
+      // );
     } catch (error) {
       console.log(error);
     }

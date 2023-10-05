@@ -28,13 +28,15 @@ import { Roles as Role } from 'src/roles.decorator';
 import { Roles } from '@prisma/client';
 import { SharedService } from 'src/shared/shared.service';
 import { Public } from 'src/public.decorator';
-import { deleteFile } from 'src/common/helper';
+import { deleteFile, getFile } from 'src/common/helper';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Controller('product')
 export class ProductController {
   constructor(
     private productService: ProductService,
     private sharedService: SharedService,
+    private prisma: PrismaService,
   ) {}
 
   @Post('uploadListing')
@@ -53,14 +55,53 @@ export class ProductController {
     }),
   )
   @UsePipes(new CsvValidationPipe(ProductCSVDto))
-  uploadProductListing(
+  async uploadProductListing(
     @UploadedFile()
     file: Express.Multer.File,
     @Req() req: Request,
     @Res() res: Response,
   ) {
     try {
-      const newProductUpload = this.productService.uploadProductListing(
+      console.log('here');
+
+      const existingSkus = [];
+      const getfile: any = await getFile(file.path);
+
+      const jsonData: ProductCSVDto[] = await this.sharedService.parseCsvFile(
+        getfile,
+        ProductCSVDto,
+      );
+
+      for (const product of jsonData) {
+        const exisitingProduct = await this.prisma.product.findFirst({
+          where: {
+            sku: product.SKU,
+            NOT: {
+              userId: req['user'].id,
+            },
+          },
+        });
+
+        if (exisitingProduct) {
+          existingSkus.push(exisitingProduct);
+        }
+      }
+
+      if (existingSkus.length) {
+        await deleteFile(file.path);
+
+        return res
+          .status(200)
+          .send(
+            this.sharedService.sendResponse(
+              null,
+              false,
+              `SKU ${existingSkus[0].sku} already exsist. After changing it try uploading again.`,
+            ),
+          );
+      }
+
+      const newProductUpload = await this.productService.uploadProductListing(
         req['user'].id,
         file.filename,
       );
@@ -75,9 +116,13 @@ export class ProductController {
           ),
         );
     } catch (error) {
+      console.log(error);
+      await deleteFile(file.path);
       return res
         .status(500)
-        .send(this.sharedService.sendResponse('', false, error.message));
+        .send(
+          this.sharedService.sendResponse('', false, 'Something went wrong.'),
+        );
     }
   }
 

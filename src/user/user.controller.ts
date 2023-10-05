@@ -5,6 +5,7 @@ import {
   Post,
   Query,
   Res,
+  UnauthorizedException,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -53,6 +54,10 @@ export class UserController {
         },
       });
 
+      if (!user) {
+        throw new UnauthorizedException();
+      }
+
       delete user.password;
       delete user.otp;
       const access_toke = await this.jwtService.signAsync(user);
@@ -81,6 +86,14 @@ export class UserController {
 
       return res.status(200).send(this.sharedService.sendResponse(user, true));
     } catch (error) {
+      console.log(error);
+
+      if (error.message === 'Unauthorized') {
+        return res
+          .status(401)
+          .send(this.sharedService.sendResponse(null, false, error.message));
+      }
+
       return res
         .status(500)
         .send(

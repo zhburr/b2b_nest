@@ -33,6 +33,7 @@ import { UserService } from 'src/user/user.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Public } from 'src/public.decorator';
 import * as ExcelJS from 'exceljs';
+import { AddNewPaymentDTO } from 'src/user/dto';
 
 @Controller('order')
 export class OrderController {
@@ -113,7 +114,7 @@ export class OrderController {
 
       if (existingPostage) {
         return res
-          .status(500)
+          .status(200)
           .send(
             this.sharedService.sendResponse(
               null,
@@ -197,7 +198,7 @@ export class OrderController {
 
       if (existingPostage) {
         return res
-          .status(500)
+          .status(200)
           .send(
             this.sharedService.sendResponse(
               null,
@@ -338,7 +339,12 @@ export class OrderController {
       const userData = await this.orderService.getUserById(order.userId);
       return res
         .status(200)
-        .send(this.sharedService.sendResponse({ invoiceData, userData }, true));
+        .send(
+          this.sharedService.sendResponse(
+            { invoiceData, userData, hasInvoice: !!order.invoice },
+            true,
+          ),
+        );
     } catch (error) {
       return res
         .status(500)
@@ -408,7 +414,7 @@ export class OrderController {
           `B2B Direct invoice`,
           `<p>B2B Direct invoice against order id ${order.id} has been generate.Login to your account and check details.</p>
           <p>Regards</p>
-          <p>B2BDirect</p>
+          <p>B2B Direct</p>
           `,
         );
       });
@@ -443,6 +449,24 @@ export class OrderController {
         paid: dto.paid,
         delivered: dto.delivered,
       });
+
+      if (dto.paid) {
+        const order = await this.orderService.getOrderById(dto.orderId, false);
+        const getUser = await this.prisma.user.findUnique({
+          where: {
+            id: order.userId,
+          },
+        });
+
+        const data: AddNewPaymentDTO = {
+          email: getUser.email,
+          paymentType: 'Credit',
+          amount: Number(order.totalAmount),
+          description: `Amount credited for the order ${order.id}`,
+        };
+
+        await this.userService.addNewPayment(data);
+      }
 
       return res
         .status(200)

@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE `OrderUpload` ADD COLUMN `delivered` BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE `OrderUpload` AUTO_INCREMENT = 1000;
