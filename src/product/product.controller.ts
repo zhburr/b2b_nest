@@ -62,8 +62,6 @@ export class ProductController {
     @Res() res: Response,
   ) {
     try {
-      console.log('here');
-
       const existingSkus = [];
       const getfile: any = await getFile(file.path);
 
@@ -116,7 +114,6 @@ export class ProductController {
           ),
         );
     } catch (error) {
-      console.log(error);
       await deleteFile(file.path);
       return res
         .status(500)
@@ -322,12 +319,8 @@ export class ProductController {
     try {
       const product = await this.productService.getProductBySKU(sku);
       if (product.image) {
-        console.log('deleted sucessfully');
-
         await deleteFile(`uploads\\productsImage\\${product.image}`);
       }
-
-      console.log(file);
 
       const update = await this.productService.updateProductBySKU(sku, {
         image: file.filename,
@@ -343,6 +336,7 @@ export class ProductController {
           ),
         );
     } catch (error) {
+      await deleteFile(file.path);
       return res
         .status(500)
         .send(

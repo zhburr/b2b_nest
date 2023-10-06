@@ -86,8 +86,6 @@ export class UserController {
 
       return res.status(200).send(this.sharedService.sendResponse(user, true));
     } catch (error) {
-      console.log(error);
-
       if (error.message === 'Unauthorized') {
         return res
           .status(401)
@@ -183,7 +181,6 @@ export class UserController {
           const unique = Math.round(Math.random() * 1e9);
           const ext = extname(file.originalname);
           const fileName = `${unique}${ext}`;
-          console.log(fileName);
           callback(null, fileName);
         },
       }),
@@ -196,18 +193,12 @@ export class UserController {
     @Body('email') email: string,
   ) {
     try {
-      console.log(file, 'file');
-
-      console.log('in user upload image');
-
       const user = await this.prisma.user.findUnique({
         where: {
           email,
         },
       });
       if (user.avatar) {
-        console.log('deleted sucessfully');
-
         if (
           checkIfFileOrDirectoryExists(`uploads\\usersImage\\${user.avatar}`)
         ) {
@@ -234,8 +225,7 @@ export class UserController {
           ),
         );
     } catch (error) {
-      console.log('here comes the error', error);
-
+      await deleteFile(file.path);
       return res
         .status(500)
         .send(

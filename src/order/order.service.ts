@@ -256,8 +256,6 @@ export class OrderService {
         );
       }
     } catch (error) {
-      console.log(error);
-
       return this.sharedService.sendResponse(
         {},
         false,
