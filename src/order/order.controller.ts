@@ -223,18 +223,22 @@ export class OrderController {
           },
         });
 
-        return this.sharedService.sendResponse(
-          upsertPostage,
-          true,
-          'Label price upsert sucessfully ',
-        );
+        return res
+          .status(200)
+          .send(
+            this.sharedService.sendResponse(
+              upsertPostage,
+              true,
+              'Label price upsert sucessfully ',
+            ),
+          );
       }
     } catch (error) {
-      return this.sharedService.sendResponse(
-        {},
-        false,
-        'Something went wrong.',
-      );
+      return res
+        .status(500)
+        .send(
+          this.sharedService.sendResponse({}, false, 'Something went wrong.'),
+        );
     }
   }
 
